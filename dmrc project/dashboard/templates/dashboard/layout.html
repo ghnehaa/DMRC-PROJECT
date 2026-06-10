@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>DMRC Track Layout</title>
+    <style>
+        body { font-family: Arial; background: #1a1a2e; color: white; padding: 20px; }
+        h2 { color: #e63946; }
+        .actions { margin: 15px 0; }
+        .actions a { padding: 8px 18px; background: #003580; color: white;
+                     border-radius: 5px; text-decoration: none; margin-right: 10px; }
+        svg { background: #0d0d0d; border-radius: 10px; border: 1px solid #333; }
+        .legend { margin-top: 15px; font-size: 13px; color: #aaa; }
+        span.dot { display: inline-block; width: 12px; height: 12px;
+                   border-radius: 50%; margin-right: 5px; vertical-align: middle; }
+    </style>
+</head>
+<body>
+<h2>🚇 DMRC Track Layout</h2>
+<p>Stations: <strong>{{ layout.num_stations }}</strong> &nbsp;|&nbsp;
+   Crossovers: <strong>{{ layout.num_crossovers }}</strong></p>
+
+<div class="actions">
+    <a href="{% url 'input' %}">← New Layout</a>
+    <a href="{% url 'export_csv' %}">⬇ Export CSV</a>
+    <a href="{% url 'logout' %}">Logout</a>
+</div>
+
+<!-- THE TRACK SVG DRAWING -->
+<svg width="{{ svg_width }}" height="{{ svg_height }}" xmlns="http://www.w3.org/2000/svg">
+
+    <!-- UP LINE (green) -->
+    <line x1="{{ track_x1 }}" y1="{{ up_y }}"
+          x2="{{ track_x2 }}" y2="{{ up_y }}"
+          stroke="#00ff88" stroke-width="3"/>
+    <text x="5" y="{{ up_y|add:5 }}" fill="#00ff88" font-size="12">UP</text>
+
+    <!-- DOWN LINE (yellow) -->
+    <line x1="{{ track_x1 }}" y1="{{ down_y }}"
+          x2="{{ track_x2 }}" y2="{{ down_y }}"
+          stroke="#ffd700" stroke-width="3"/>
+    <text x="5" y="{{ down_y|add:5 }}" fill="#ffd700" font-size="12">DN</text>
+
+    <!-- STATIONS -->
+    {% for s in stations %}
+        <!-- Station box on UP line -->
+        <rect x="{{ s.box_x }}" y="{{ s.box_up_y }}"
+              width="{{ s.width }}" height="{{ s.height }}"
+              fill="#003580" stroke="#00ff88" stroke-width="1.5" rx="3"/>
+        <text x="{{ s.x }}" y="{{ s.up_y|add:5 }}"
+              text-anchor="middle" fill="white" font-size="10">{{ s.label }}</text>
+
+        <!-- Station box on DOWN line -->
+        <rect x="{{ s.box_x }}" y="{{ s.box_down_y }}"
+              width="{{ s.width }}" height="{{ s.height }}"
+              fill="#003580" stroke="#ffd700" stroke-width="1.5" rx="3"/>
+        <text x="{{ s.x }}" y="{{ s.down_y|add:5 }}"
+              text-anchor="middle" fill="white" font-size="10">{{ s.label }}</text>
+    {% endfor %}
+
+    <!-- CROSSOVERS (diagonal lines between UP and DOWN) -->
+    {% for co in crossovers %}
+        <!-- Line from UP track at from_station → DOWN track at to_station -->
+        <line x1="{{ co.x1 }}" y1="{{ co.up_y }}"
+              x2="{{ co.x2 }}" y2="{{ co.down_y }}"
+              stroke="#ff4444" stroke-width="2.5" stroke-dasharray="6,3"/>
+        <!-- Diamond marker at midpoint -->
+        <polygon points="{{ co.mid_x }},{{ co.up_y|add:30 }}
+                         {{ co.mid_x|add:8 }},{{ co.up_y|add:50 }}
+                         {{ co.mid_x }},{{ co.up_y|add:70 }}
+                         {{ co.mid_x|add:-8 }},{{ co.up_y|add:50 }}"
+                 fill="#ff4444" opacity="0.8"/>
+        <text x="{{ co.mid_x }}" y="{{ co.up_y|add:100 }}"
+              text-anchor="middle" fill="#ff4444" font-size="10">
+            X: ST{{ co.from_station }}↔ST{{ co.to_station }}
+        </text>
+    {% endfor %}
+
+</svg>
+
+<div class="legend">
+    <span class="dot" style="background:#00ff88"></span> UP Line &nbsp;
+    <span class="dot" style="background:#ffd700"></span> DOWN Line &nbsp;
+    <span class="dot" style="background:#003580"></span> Station &nbsp;
+    <span class="dot" style="background:#ff4444"></span> Crossover
+</div>
+</body>
+</html>

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>DMRC - Enter Layout</title>
+    <style>
+        body { font-family: Arial; background: #1a1a2e; color: white; padding: 30px; }
+        .card { background: #16213e; padding: 30px; border-radius: 10px; max-width: 600px; margin: auto; }
+        h2 { color: #e63946; }
+        input[type=number] { padding: 8px; width: 80px; border-radius: 5px; border: none; }
+        button { padding: 10px 25px; background: #e63946; color: white;
+                 border: none; border-radius: 5px; cursor: pointer; margin-top: 15px; }
+        #crossover-fields { margin-top: 20px; }
+        label { display: block; margin: 10px 0 4px; }
+        .error { color: #ff6b6b; }
+    </style>
+</head>
+<body>
+<div class="card">
+    <h2>🚇 DMRC Track Layout Generator</h2>
+    {% for message in messages %}
+        <p class="error">{{ message }}</p>
+    {% endfor %}
+    <form method="POST" id="main-form">
+        {% csrf_token %}
+
+        <label>Number of Stations:</label>
+        <input type="number" name="num_stations" id="num_stations" min="2" max="20" required>
+
+        <label>Number of Crossovers:</label>
+        <input type="number" name="num_crossovers" id="num_crossovers" min="0" max="10"
+               oninput="generateCrossoverFields()" required>
+
+        <div id="crossover-fields"></div>
+
+        <button type="submit">Generate Layout →</button>
+    </form>
+    <br>
+    <a href="{% url 'logout' %}" style="color:#aaa;">Logout</a>
+</div>
+
+<script>
+function generateCrossoverFields() {
+    const n = parseInt(document.getElementById('num_crossovers').value) || 0;
+    const container = document.getElementById('crossover-fields');
+    container.innerHTML = '';
+    for (let i = 1; i <= n; i++) {
+        container.innerHTML += `
+            <div style="margin:10px 0; background:#0f3460; padding:10px; border-radius:5px;">
+                <strong>Crossover ${i}:</strong>
+                From Station <input type="number" name="from_station_${i}" min="1" style="width:60px" required>
+                → To Station <input type="number" name="to_station_${i}" min="1" style="width:60px" required>
+            </div>`;
+    }
+}
+</script>
+</body>
+</html>

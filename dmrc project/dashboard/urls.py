@@ -1,0 +1,10 @@
+from django.urls import path
+from . import views
+
+urlpatterns = [
+    path('login/',  views.login_view,  name='login'),
+    path('logout/', views.logout_view, name='logout'),
+    path('input/',  views.input_view,  name='input'),
+    path('layout/', views.layout_view, name='layout'),
+    path('export/', views.export_csv,  name='export_csv'),
+]
