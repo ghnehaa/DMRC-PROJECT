@@ -878,3 +878,4 @@ def simulation_tick(request):
     
     from django.http import JsonResponse
     return JsonResponse(response_data)
+
