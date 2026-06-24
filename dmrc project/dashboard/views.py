@@ -324,6 +324,11 @@ def input_view(request):
                     position=position,
                 )
             request.session['layout_id'] = layout.id
+            # Clear previous simulation state to prevent coordinate mismatch/corruption
+            if 'sim_state' in request.session:
+                del request.session['sim_state']
+            if 'last_tick_time' in request.session:
+                del request.session['last_tick_time']
             return redirect('layout')
         except (ValueError, TypeError):
             messages.error(request, 'Please enter valid numbers.')
@@ -619,7 +624,7 @@ class TrainSimEngine:
             valid_stations.sort(key=lambda s: s['x'])
             for s in valid_stations:
                 d_station = s['x'] - current_seg['x1']
-                if d_station > t.seg_progress + 1.0 and (t.last_stopped_station != s['number'] or t.last_stopped_line != 'up'):
+                if d_station > t.seg_progress - 2.0 and (t.last_stopped_station != s['number'] or t.last_stopped_line != 'up'):
                     stop_target_dist = d_station
                     target_station_obj = s
                     break
@@ -628,7 +633,7 @@ class TrainSimEngine:
             valid_stations.sort(key=lambda s: s['x'], reverse=True)
             for s in valid_stations:
                 d_station = current_seg['x1'] - s['x']
-                if d_station > t.seg_progress + 1.0 and (t.last_stopped_station != s['number'] or t.last_stopped_line != 'down'):
+                if d_station > t.seg_progress - 2.0 and (t.last_stopped_station != s['number'] or t.last_stopped_line != 'down'):
                     stop_target_dist = d_station
                     target_station_obj = s
                     break
@@ -639,10 +644,10 @@ class TrainSimEngine:
             if dist_to_station <= brake_dist + 2.0:
                 t.state = 'BRAKING'
                 t.acc = - (t.speed * t.speed) / (2.0 * max(1.0, dist_to_station))
-                if t.acc > -0.2:
+                if t.acc > -0.2 and t.speed > 1.5:
                     t.acc = -1.2
             
-            if dist_to_station < 1.5 and t.speed < 1.2:
+            if dist_to_station < 2.0 and t.speed < 1.5:
                 t.speed = 0.0
                 t.seg_progress = stop_target_dist
                 t.state = 'DWELLING'
@@ -662,7 +667,7 @@ class TrainSimEngine:
                 if dist_to_crossover <= slow_dist + 2.0:
                     t.state = 'BRAKING'
                     t.acc = - (t.speed * t.speed - (25.0/3.6)**2) / (2.0 * max(1.0, dist_to_crossover))
-                    if t.acc > -0.2:
+                    if t.acc > -0.2 and t.speed > (25.0 / 3.6) + 1.0:
                         t.acc = -1.2
         # 3. Kinematics updates
         if t.state == 'ACCELERATING':
@@ -878,4 +883,4 @@ def simulation_tick(request):
     
     from django.http import JsonResponse
     return JsonResponse(response_data)
-
+   
