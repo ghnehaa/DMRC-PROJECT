@@ -89,7 +89,6 @@ class MetroNetwork:
     """
     def __init__(self, layout, spacing, up_y, down_y, margin_left, margin_right, svg_width, st_w, st_h):
         self.layout = layout
-        self.num_stations = layout.num_stations
         self.spacing = spacing
         self.up_y = up_y
         self.down_y = down_y
@@ -103,13 +102,58 @@ class MetroNetwork:
         self.points = []
         self.signals = []
         self._build_network()
+
     def _build_network(self):
-        # 1. Instantiate Stations
-        for i in range(1, self.num_stations + 1):
-            x = self.margin_left + (i - 1) * self.spacing
+        try:
+            data = json.loads(self.layout.layout_data)
+        except Exception:
+            data = {}
+
+        stations_up = data.get('stations_up', ['UP-ST-1', 'UP-ST-2', 'UP-ST-3'])
+        stations_down = data.get('stations_down', ['DN-ST-1', 'DN-ST-2', 'DN-ST-3'])
+        tc_lengths_up = data.get('tc_lengths_up', [250, 250, 250, 250])
+        tc_lengths_down = data.get('tc_lengths_down', [250, 250, 250, 250])
+        crossovers_input = data.get('crossovers', [
+            {'type': 'down_to_up', 'position': 15},
+            {'type': 'up_to_down', 'position': 85}
+        ])
+        signals_input = data.get('signals', [
+            {'line': 'up', 'position': 30},
+            {'line': 'up', 'position': 70},
+            {'line': 'down', 'position': 30},
+            {'line': 'down', 'position': 70}
+        ])
+
+        # 1. Instantiate Track Circuits (Sequential on UP and DOWN lines using scaled lengths)
+        total_width = self.svg_width - self.margin_left - self.margin_right # 1000px
+
+        # UP Line TCs
+        sum_len_up = sum(tc_lengths_up) if tc_lengths_up else 1.0
+        scale_up = total_width / sum_len_up
+        curr_x = self.margin_left
+        for idx, length in enumerate(tc_lengths_up, 1):
+            scaled_len = length * scale_up
+            self.track_circuits.append(TrackCircuit(f'TC-UP-{idx}', 'up', curr_x, curr_x + scaled_len))
+            curr_x += scaled_len
+
+        # DOWN Line TCs
+        sum_len_down = sum(tc_lengths_down) if tc_lengths_down else 1.0
+        scale_down = total_width / sum_len_down
+        curr_x = self.margin_left
+        for idx, length in enumerate(tc_lengths_down, 1):
+            scaled_len = length * scale_down
+            self.track_circuits.append(TrackCircuit(f'TC-DN-{idx}', 'down', curr_x, curr_x + scaled_len))
+            curr_x += scaled_len
+
+        # 2. Instantiate Stations
+        # UP stations
+        num_up = len(stations_up)
+        for idx, name in enumerate(stations_up, 1):
+            x = self.margin_left + idx * (total_width / (num_up + 1))
             self.stations.append({
-                'number': i,
-                'label': f'ST-{i:02d}',
+                'number': idx,
+                'label': name,
+                'line': 'up',
                 'x': x,
                 'box_x': x - self.st_w // 2,
                 'box_up_y': self.up_y - self.st_h // 2,
@@ -119,112 +163,85 @@ class MetroNetwork:
                 'up_y': self.up_y,
                 'down_y': self.down_y,
             })
-        # Sort stations from West (left) to East (right)
-        sorted_stations = sorted(self.stations, key=lambda s: s['x'])
-        # 2. Instantiate Track Circuits (Electrical block partitions)
-        # Lead track blocks (before first station platform)
-        self.track_circuits.append(TrackCircuit('TC-UP-LEAD', 'up', self.margin_left, sorted_stations[0]['x']))
-        self.track_circuits.append(TrackCircuit('TC-DN-LEAD', 'down', self.margin_left, sorted_stations[0]['x']))
-        # Platform-to-Platform block sections
-        for i in range(len(sorted_stations) - 1):
-            s_curr = sorted_stations[i]
-            s_next = sorted_stations[i+1]
-            self.track_circuits.append(TrackCircuit(f'TC-UP-{i+1}', 'up', s_curr['x'], s_next['x']))
-            self.track_circuits.append(TrackCircuit(f'TC-DN-{i+1}', 'down', s_curr['x'], s_next['x']))
-        # Trail track blocks (after last station platform)
-        last_s = sorted_stations[-1]
-        self.track_circuits.append(TrackCircuit('TC-UP-TRAIL', 'up', last_s['x'], self.svg_width - self.margin_right))
-        self.track_circuits.append(TrackCircuit('TC-DN-TRAIL', 'down', last_s['x'], self.svg_width - self.margin_right))
+
+        # DOWN stations
+        num_down = len(stations_down)
+        for idx, name in enumerate(stations_down, 1):
+            x = self.margin_left + idx * (total_width / (num_down + 1))
+            self.stations.append({
+                'number': num_up + idx,
+                'label': name,
+                'line': 'down',
+                'x': x,
+                'box_x': x - self.st_w // 2,
+                'box_up_y': self.up_y - self.st_h // 2,
+                'box_down_y': self.down_y - self.st_h // 2,
+                'width': self.st_w,
+                'height': self.st_h,
+                'up_y': self.up_y,
+                'down_y': self.down_y,
+            })
+
         # 3. Instantiate Crossover Points
         XOV_WIDTH = 50
-        XOV_DISTANCE = 60
-        for idx, co in enumerate(Crossover.objects.filter(layout=self.layout), 1):
-            from_x = self.margin_left + (co.from_station - 1) * self.spacing
-            if co.position == 'after':
-                x_left  = from_x + self.st_w // 2 + XOV_DISTANCE
-                x_right = x_left + XOV_WIDTH
-            else:
-                x_right = from_x - self.st_w // 2 - XOV_DISTANCE
-                x_left  = x_right - XOV_WIDTH
-            # Crossover turnout orientation direction
-            is_last = (co.from_station == self.num_stations or co.to_station == self.num_stations)
-            if is_last:
-                co_type = 'up_to_down'
-            elif co.from_station == 1 or co.to_station == 1:
-                co_type = 'down_to_up'
-            elif co.from_station < co.to_station:
-                co_type = 'up_to_down'
-            else:
-                co_type = 'down_to_up'
-            # Point switch occupies a unique track circuit segment
+        for idx, co in enumerate(crossovers_input, 1):
+            pct = co['position']
+            co_type = co['type']
+            x_center = self.margin_left + (pct / 100.0) * total_width
+            x_left = x_center - XOV_WIDTH // 2
+            x_right = x_center + XOV_WIDTH // 2
+            
             point_id = f'P-{idx}'
             tc_id = f'TC-XOV-{idx}'
-            self.points.append(PointSwitch(
+            pt = PointSwitch(
                 point_id=point_id,
                 tc_id=tc_id,
-                from_station=co.from_station,
-                to_station=co.to_station,
-                position_type=co.position,
+                from_station=1,
+                to_station=2,
+                position_type='after',
                 x_left=x_left,
                 x_right=x_right,
                 y_up=self.up_y,
                 y_down=self.down_y
-            ))
-            # Register the physical turnout track circuit
+            )
+            pt.crossover_type = co_type
+            self.points.append(pt)
+            
             self.track_circuits.append(TrackCircuit(tc_id, 'crossover', x_left, x_right))
+
         # 4. Instantiate Wayside Signal Posts
-        # Station Platform Entry Signals
-        for s in self.stations:
-            # UP signal protecting the block containing platform 1
+        for idx, sig in enumerate(signals_input, 1):
+            line = sig['line']
+            pct = sig['position']
+            x = self.margin_left + (pct / 100.0) * total_width
+            y = self.up_y if line == 'up' else self.down_y
+            protects_tc_id = self._get_tc_at(x, line)
+            
             self.signals.append(SignalPost(
-                signal_id=f'S-UP-{s["number"]}',
-                line='up',
-                x=s['box_x'] - 15,
-                y=self.up_y,
-                protects_tc_id=self._get_tc_at(s['box_x'], 'up'),
+                signal_id=f'S-{line.upper()}-{idx}',
+                line=line,
+                x=x,
+                y=y,
+                protects_tc_id=protects_tc_id,
                 signal_type='station'
             ))
-            # DOWN signal protecting the block containing platform 2
-            self.signals.append(SignalPost(
-                signal_id=f'S-DN-{s["number"]}',
-                line='down',
-                x=s['box_x'] + s['width'] + 15,
-                y=self.down_y,
-                protects_tc_id=self._get_tc_at(s['box_x'] + s['width'], 'down'),
-                signal_type='station'
-            ))
-        # Crossover Entry Signals
-        for idx, pt in enumerate(self.points, 1):
-            if pt.from_station < pt.to_station or pt.from_station == self.num_stations:
-                # UP line signal protecting crossover entry
-                self.signals.append(SignalPost(
-                    signal_id=f'S-CO-{idx}',
-                    line='up',
-                    x=pt.x_left - 15,
-                    y=self.up_y,
-                    protects_tc_id=pt.tc_id,
-                    signal_type='crossover'
-                ))
-            else:
-                # DOWN line signal protecting crossover entry
-                self.signals.append(SignalPost(
-                    signal_id=f'S-CO-{idx}',
-                    line='down',
-                    x=pt.x_right + 15,
-                    y=self.down_y,
-                    protects_tc_id=pt.tc_id,
-                    signal_type='crossover'
-                ))
+
     def _get_tc_at(self, x, line):
         for tc in self.track_circuits:
             if tc.line == line and tc.start_x <= x <= tc.end_x:
                 return tc.tc_id
         return 'TC-UNKNOWN'
+
     def get_serialized_data(self):
+        points_serialized = []
+        for p in self.points:
+            d = p.to_dict()
+            d['crossover_type'] = getattr(p, 'crossover_type', 'up_to_down')
+            points_serialized.append(d)
         return {
             'stations': self.stations,
             'track_circuits': [tc.to_dict() for tc in self.track_circuits],
-            'points': [p.to_dict() for p in self.points],
+            'points': points_serialized,
             'signals': [s.to_dict() for s in self.signals]
         }
 # =====================================================================
@@ -250,90 +267,113 @@ def logout_view(request):
 def input_view(request):
     if request.method == 'POST':
         try:
-            num_stations   = int(request.POST.get('num_stations', 0))
+            # 1. Parse station counts and names
+            num_stations_up = int(request.POST.get('num_stations_up', 0))
+            num_stations_down = int(request.POST.get('num_stations_down', 0))
+            
+            stations_up = []
+            for i in range(1, num_stations_up + 1):
+                name = request.POST.get(f'st_up_name_{i}', f'UP-ST-{i}').strip()
+                stations_up.append(name)
+                
+            stations_down = []
+            for i in range(1, num_stations_down + 1):
+                name = request.POST.get(f'st_down_name_{i}', f'DN-ST-{i}').strip()
+                stations_down.append(name)
+
+            # 2. Parse track circuit counts and lengths
+            num_tc_up = int(request.POST.get('num_tc_up', 0))
+            tc_lengths_up = []
+            for i in range(1, num_tc_up + 1):
+                length = float(request.POST.get(f'tc_up_len_{i}', 250))
+                tc_lengths_up.append(length)
+
+            num_tc_down = int(request.POST.get('num_tc_down', 0))
+            tc_lengths_down = []
+            for i in range(1, num_tc_down + 1):
+                length = float(request.POST.get(f'tc_down_len_{i}', 250))
+                tc_lengths_down.append(length)
+
+            # 3. Parse crossovers
             num_crossovers = int(request.POST.get('num_crossovers', 0))
-            num_depots     = int(request.POST.get('num_depots', 0))
-            if num_stations < 2:
-                messages.error(request, 'You need at least 2 stations.')
-                return redirect('input')
-            crossover_data = []
-            errors = []
+            crossovers_data = []
             for i in range(1, num_crossovers + 1):
-                from_s   = request.POST.get(f'from_station_{i}')
-                to_s     = request.POST.get(f'to_station_{i}')
-                position = request.POST.get(f'co_position_{i}', 'after')
-                if not from_s or not to_s:
-                    errors.append(f'Crossover {i}: missing values.')
-                    continue
-                from_s, to_s = int(from_s), int(to_s)
-                if from_s == to_s:
-                    errors.append(f'Crossover {i}: from and to cannot be same.')
-                elif from_s < 1 or from_s > num_stations:
-                    errors.append(f'Crossover {i}: station {from_s} out of range.')
-                elif to_s < 1 or to_s > num_stations:
-                    errors.append(f'Crossover {i}: station {to_s} out of range.')
-                else:
-                    crossover_data.append((from_s, to_s, position))
-            depot_data = []
-            for i in range(1, num_depots + 1):
-                near_s   = request.POST.get(f'depot_station_{i}')
-                track    = request.POST.get(f'depot_track_{i}', 'up')
-                position = request.POST.get(f'depot_position_{i}', 'after')
-                if not near_s:
-                    errors.append(f'Depot {i}: missing station.')
-                    continue
-                near_s = int(near_s)
-                if near_s < 1 or near_s > num_stations:
-                    errors.append(f'Depot {i}: station {near_s} out of range.')
-                else:
-                    depot_data.append((near_s, track, position))
-            if errors:
-                for e in errors:
-                    messages.error(request, e)
-                return redirect('input')
-            # Always force a crossover at the last station so the
-            # train can reverse direction automatically, even if
-            # the user didn't add one near the terminal station.
-            last_station = num_stations
-            second_last  = num_stations - 1 if num_stations > 1 else num_stations
-            already_has_last = any(
-                c[0] == last_station or c[1] == last_station for c in crossover_data
-            )
-            if not already_has_last:
-                crossover_data.append((second_last, last_station, 'before'))
-                num_crossovers += 1
+                pos = float(request.POST.get(f'co_pos_{i}', 50))
+                co_type = request.POST.get(f'co_type_{i}', 'up_to_down')
+                crossovers_data.append({'position': pos, 'type': co_type})
+
+            # Sort crossovers by position
+            crossovers_data.sort(key=lambda c: c['position'])
+
+            # 4. Parse signals
+            num_signals = int(request.POST.get('num_signals', 0))
+            signals_data = []
+            for i in range(1, num_signals + 1):
+                line = request.POST.get(f'sig_line_{i}', 'up')
+                pos = float(request.POST.get(f'sig_pos_{i}', 50))
+                signals_data.append({'line': line, 'position': pos})
+
+            # Form data dict
+            layout_data_dict = {
+                'stations_up': stations_up,
+                'stations_down': stations_down,
+                'tc_lengths_up': tc_lengths_up,
+                'tc_lengths_down': tc_lengths_down,
+                'crossovers': crossovers_data,
+                'signals': signals_data
+            }
+            
+            # Save Layout model
             layout = Layout.objects.create(
                 user=request.user,
-                num_stations=num_stations,
-                num_crossovers=num_crossovers,
+                num_stations=len(stations_up) + len(stations_down),
+                num_crossovers=len(crossovers_data),
+                layout_data=json.dumps(layout_data_dict)
             )
-            for idx in range(1, num_stations + 1):
-                Station.objects.create(layout=layout, number=idx)
-            for from_s, to_s, position in crossover_data:
-                Crossover.objects.create(
-                    layout=layout,
-                    from_station=from_s,
-                    to_station=to_s,
-                    position=position,
-                )
-            for near_s, track, position in depot_data:
-                Depot.objects.create(
-                    layout=layout,
-                    near_station=near_s,
-                    track=track,
-                    position=position,
-                )
+
             request.session['layout_id'] = layout.id
-            # Clear previous simulation state to prevent coordinate mismatch/corruption
             if 'sim_state' in request.session:
                 del request.session['sim_state']
             if 'last_tick_time' in request.session:
                 del request.session['last_tick_time']
+                
             return redirect('layout')
-        except (ValueError, TypeError):
-            messages.error(request, 'Please enter valid numbers.')
+        except (ValueError, TypeError) as e:
+            messages.error(request, f'Please enter valid numbers. Error: {e}')
             return redirect('input')
-    return render(request, 'dashboard/input.html')
+            
+    # GET Request: Load existing layout data or sensible defaults
+    layout_id = request.session.get('layout_id')
+    layout_data_json = '{}'
+    if layout_id:
+        try:
+            layout = Layout.objects.get(id=layout_id, user=request.user)
+            layout_data_json = layout.layout_data
+        except Layout.DoesNotExist:
+            pass
+            
+    if layout_data_json == '{}':
+        # Default layout structure
+        default_layout = {
+            'stations_up': ['Dwarka Sec 21', 'Dwarka Sec 8', 'Dwarka Sec 9'],
+            'stations_down': ['Noida Electronic City', 'Noida Sec 62', 'Noida Sec 59'],
+            'tc_lengths_up': [250, 250, 250, 250],
+            'tc_lengths_down': [250, 250, 250, 250],
+            'crossovers': [
+                {'position': 15, 'type': 'down_to_up'},
+                {'position': 85, 'type': 'up_to_down'}
+            ],
+            'signals': [
+                {'line': 'up', 'position': 30},
+                {'line': 'up', 'position': 70},
+                {'line': 'down', 'position': 30},
+                {'line': 'down', 'position': 70}
+            ]
+        }
+        layout_data_json = json.dumps(default_layout)
+        
+    return render(request, 'dashboard/input.html', {'layout_data_json': layout_data_json})
+
 @login_required(login_url='login')
 def layout_view(request):
     layout_id = request.session.get('layout_id')
@@ -345,16 +385,17 @@ def layout_view(request):
     except Layout.DoesNotExist:
         messages.error(request, 'Layout not found.')
         return redirect('input')
-    num_stations = layout.num_stations
+    
     SVG_WIDTH    = 1200
     SVG_HEIGHT   = 400
     MARGIN_LEFT  = 100
     MARGIN_RIGHT = 100
-    SPACING      = (SVG_WIDTH - MARGIN_LEFT - MARGIN_RIGHT) // max(num_stations - 1, 1)
+    SPACING      = 200 # unused but kept for compatibility
     UP_Y         = 120
     DOWN_Y       = 260
     ST_W         = 60
     ST_H         = 24
+    
     # Instantiate the OOP MetroNetwork class to build the layout components
     network = MetroNetwork(
         layout=layout,
@@ -368,29 +409,31 @@ def layout_view(request):
         st_h=ST_H
     )
     network_data = network.get_serialized_data()
-    # ── depots ─────────────────────────────────────────────────
+    
+    # Prepare depots (fallback logic since depots are automatic/unused by form)
     depots = []
     DEPOT_LEN = 55
     DEPOT_H   = 45
     CO_OFFSET = 20
-    for dp in Depot.objects.filter(layout=layout):
-        base_x   = MARGIN_LEFT + (dp.near_station - 1) * SPACING
-        branch_x = base_x + CO_OFFSET if dp.position == 'after' else base_x - CO_OFFSET
-        track_y  = UP_Y if dp.track == 'up' else DOWN_Y
-        direction = -1 if dp.track == 'up' else 1
+    # Place a depot near the first station if stations exist
+    if network_data['stations']:
+        first_st = network_data['stations'][0]
+        base_x = first_st['x']
+        branch_x = base_x + CO_OFFSET
         end_x = branch_x + DEPOT_LEN
-        end_y = track_y + direction * DEPOT_H
+        end_y = UP_Y - DEPOT_H
         depots.append({
-            'near_station': dp.near_station,
-            'track':        dp.track,
-            'position':     dp.position,
+            'near_station': 1,
+            'track':        'up',
+            'position':     'after',
             'x1':           branch_x,
-            'y1':           track_y,
+            'y1':           UP_Y,
             'x2':           end_x,
             'y2':           end_y,
             'label_x':      end_x + 4,
             'label_y':      end_y,
         })
+    
     # Prepare Context dictionary
     context = {
         'layout':     layout,
@@ -407,15 +450,15 @@ def layout_view(request):
     
     # Format crossovers to match frontend key expectations
     frontend_crossovers = []
-    for pt in network_data['points']:
+    for idx, pt in enumerate(network_data['points'], 1):
         mid_x = (pt['x_left'] + pt['x_right']) // 2
         mid_y = (pt['y_up'] + pt['y_down']) // 2
         frontend_crossovers.append({
-            'index':        pt['point_id'].split('-')[1],
+            'index':        idx,
             'from_station': pt['from_station'],
             'to_station':   pt['to_station'],
             'position':     pt['position_type'],
-            'type':         'up_to_down' if (pt['from_station'] < pt['to_station'] or pt['from_station'] == num_stations) else 'down_to_up',
+            'type':         pt['crossover_type'],
             'x_left':       pt['x_left'],
             'x_right':      pt['x_right'],
             'width':        pt['x_right'] - pt['x_left'],
@@ -425,9 +468,19 @@ def layout_view(request):
     context['crossovers'] = frontend_crossovers
     context['crossovers_json'] = json.dumps(frontend_crossovers)
     context['last_crossover_x'] = frontend_crossovers[-1]['mid_x'] if frontend_crossovers else None
+    
+    # Enrich signals with line index for template ID matching
+    signals_list = []
+    for idx, sig in enumerate(network_data['signals'], 1):
+        sig_copy = dict(sig)
+        sig_copy['num'] = idx
+        signals_list.append(sig_copy)
+    context['signals'] = signals_list
+    
     # Pass the full network model details to the template as a JSON string
     context['network_json'] = json.dumps(network_data)
     return render(request, 'dashboard/layout.html', context)
+
 @login_required(login_url='login')
 def export_csv(request):
     layout_id = request.session.get('layout_id')
@@ -437,16 +490,42 @@ def export_csv(request):
         layout = Layout.objects.get(id=layout_id, user=request.user)
     except Layout.DoesNotExist:
         return redirect('input')
+        
+    try:
+        data = json.loads(layout.layout_data)
+    except Exception:
+        data = {}
+
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = f'attachment; filename="dmrc_layout_{layout.id}.csv"'
     writer = csv.writer(response)
-    writer.writerow(['Type', 'Detail 1', 'Detail 2', 'Position'])
-    for s in Station.objects.filter(layout=layout).order_by('number'):
-        writer.writerow(['Station', s.number, '', ''])
-    for co in Crossover.objects.filter(layout=layout):
-        writer.writerow(['Crossover', co.from_station, co.to_station, co.position])
-    for dp in Depot.objects.filter(layout=layout):
-        writer.writerow(['Depot', dp.near_station, dp.track, dp.position])
+    
+    writer.writerow(['Category', 'Name / Length', 'Line / Type', 'Position (%)'])
+    
+    # Stations UP
+    for s_name in data.get('stations_up', []):
+        writer.writerow(['Station', s_name, 'UP', ''])
+        
+    # Stations DOWN
+    for s_name in data.get('stations_down', []):
+        writer.writerow(['Station', s_name, 'DOWN', ''])
+        
+    # Track Circuits UP
+    for idx, L in enumerate(data.get('tc_lengths_up', []), 1):
+        writer.writerow(['Track Circuit', f'TC-UP-{idx}', f'Length: {L}m', ''])
+
+    # Track Circuits DOWN
+    for idx, L in enumerate(data.get('tc_lengths_down', []), 1):
+        writer.writerow(['Track Circuit', f'TC-DN-{idx}', f'Length: {L}m', ''])
+        
+    # Crossovers
+    for idx, co in enumerate(data.get('crossovers', []), 1):
+        writer.writerow(['Crossover', f'XOV-{idx}', co['type'].upper(), f"{co['position']}%"])
+        
+    # Signals
+    for idx, sig in enumerate(data.get('signals', []), 1):
+        writer.writerow(['Signal', f"S-{sig['line'].upper()}-{idx}", sig['line'].upper(), f"{sig['position']}%"])
+        
     return response
 # =====================================================================
 # Real-Time Python Simulation Engine & Kinematics Loop
@@ -791,6 +870,7 @@ class TrainSimEngine:
             old = prev_aspects.get(sig.signal_id)
             if old and sig.aspect != old:
                 self.log_event(f"Signal {sig.signal_id} aspect changed to {sig.aspect}")
+
 @login_required(login_url='login')
 def simulation_tick(request):
     """
@@ -804,31 +884,36 @@ def simulation_tick(request):
         layout = Layout.objects.get(id=layout_id, user=request.user)
     except Layout.DoesNotExist:
         return HttpResponse('Layout not found', status=404)
-    num_stations = layout.num_stations
+    
     SVG_WIDTH    = 1200
     SVG_HEIGHT   = 400
     MARGIN_LEFT  = 100
     MARGIN_RIGHT = 100
-    SPACING      = (SVG_WIDTH - MARGIN_LEFT - MARGIN_RIGHT) // max(num_stations - 1, 1)
+    SPACING      = 200
     UP_Y         = 120
     DOWN_Y       = 260
     ST_W         = 60
     ST_H         = 24
+    
     network = MetroNetwork(layout, SPACING, UP_Y, DOWN_Y, MARGIN_LEFT, MARGIN_RIGHT, SVG_WIDTH, ST_W, ST_H)
     network_data = network.get_serialized_data()
+    
     # Reconstruct crossovers to have index
     frontend_crossovers = []
-    for pt in network_data['points']:
+    for idx, pt in enumerate(network_data['points'], 1):
         mid_x = (pt['x_left'] + pt['x_right']) // 2
         mid_y = (pt['y_up'] + pt['y_down']) // 2
         frontend_crossovers.append({
-            'index':        int(pt['point_id'].split('-')[1]),
+            'index':        idx,
             'x_left':       pt['x_left'],
             'x_right':      pt['x_right'],
             'mid_x':        mid_x,
             'mid_y':        mid_y,
+            'type':         pt['crossover_type']
         })
-    journey = build_journey_path(MARGIN_LEFT, MARGIN_RIGHT, SPACING, num_stations, UP_Y, DOWN_Y, frontend_crossovers, SVG_WIDTH)
+        
+    journey = build_journey_path(MARGIN_LEFT, MARGIN_RIGHT, SPACING, len(network_data['stations']), UP_Y, DOWN_Y, frontend_crossovers, SVG_WIDTH)
+    
     # Load simulation state from session
     sim_data = request.session.get('sim_state')
     if not sim_data:
@@ -838,19 +923,21 @@ def simulation_tick(request):
             engine = TrainSimEngine.from_dict(sim_data, network_data, journey)
         except Exception:
             engine = TrainSimEngine(network_data, journey)
+            
     # Compute actual delta-time
     last_tick_time = request.session.get('last_tick_time')
     now = time.time()
     if last_tick_time:
         dt = now - last_tick_time
-        # Cap dt to avoid speed jump
         if dt > 0.1:
             dt = 0.033
     else:
         dt = 0.033
     request.session['last_tick_time'] = now
+    
     # Execute simulation tick
     engine.tick(dt)
+    
     # Save state back to session
     engine_dict = engine.to_dict()
     request.session['sim_state'] = engine_dict
@@ -860,17 +947,17 @@ def simulation_tick(request):
     response_data['stations'] = network_data['stations']
     
     crossovers_payload = []
-    for pt in engine.points:
+    for idx, pt in enumerate(engine.points, 1):
         mid_x = (pt.x_left + pt.x_right) // 2
         mid_y = (pt.y_up + pt.y_down) // 2
         crossovers_payload.append({
-            'index':        int(pt.point_id.split('-')[1]),
+            'index':        idx,
             'point_id':     pt.point_id,
             'tc_id':        pt.tc_id,
             'from_station': pt.from_station,
             'to_station':   pt.to_station,
             'position':     pt.position_type,
-            'type':         'up_to_down' if (pt.from_station < pt.to_station or pt.from_station == num_stations) else 'down_to_up',
+            'type':         getattr(pt, 'crossover_type', 'up_to_down'),
             'x_left':       pt.x_left,
             'x_right':      pt.x_right,
             'width':        pt.x_right - pt.x_left,
@@ -883,4 +970,5 @@ def simulation_tick(request):
     
     from django.http import JsonResponse
     return JsonResponse(response_data)
-   
+
+
