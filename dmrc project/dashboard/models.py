@@ -5,6 +5,8 @@ class Layout(models.Model):
     num_stations = models.IntegerField()
     num_crossovers = models.IntegerField()
     created_at = models.DateTimeField(auto_now_add=True)
+    layout_data = models.TextField(default='{}')
+
     def __str__(self):
         return f"Layout {self.id} by {self.user.username} ({self.num_stations} Stations)"
 class Station(models.Model):
