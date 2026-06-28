@@ -1,56 +1,473 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>DMRC - Enter Layout</title>
+    <title>DMRC - Configure Track Layout</title>
+    <!-- Import Outfit and Share Tech Mono Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
     <style>
-        body { font-family: Arial; background: #1a1a2e; color: white; padding: 30px; }
-        .card { background: #16213e; padding: 30px; border-radius: 10px; max-width: 600px; margin: auto; }
-        h2 { color: #e63946; }
-        input[type=number] { padding: 8px; width: 80px; border-radius: 5px; border: none; }
-        button { padding: 10px 25px; background: #e63946; color: white;
-                 border: none; border-radius: 5px; cursor: pointer; margin-top: 15px; }
-        #crossover-fields { margin-top: 20px; }
-        label { display: block; margin: 10px 0 4px; }
-        .error { color: #ff6b6b; }
+        :root {
+            --bg-color: #05050f;
+            --card-bg: rgba(13, 13, 29, 0.75);
+            --border-color: rgba(68, 136, 255, 0.2);
+            --accent-red: #ff3344;
+            --accent-green: #00ff88;
+            --accent-blue: #0077ff;
+            --text-main: #f0f2fa;
+            --text-muted: #8a90a6;
+        }
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg-color);
+            color: var(--text-main);
+            padding: 30px;
+            margin: 0;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(20, 20, 50, 0.3) 0px, transparent 50%),
+                radial-gradient(at 50% 0%, rgba(0, 53, 128, 0.15) 0px, transparent 50%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 900px;
+            margin: 20px auto;
+        }
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 40px;
+            backdrop-filter: blur(15px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+        h2 {
+            font-size: 28px;
+            font-weight: 800;
+            margin-top: 0;
+            margin-bottom: 30px;
+            background: linear-gradient(135deg, #fff 40%, var(--text-muted) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        h2::before {
+            content: '';
+            display: inline-block;
+            width: 8px;
+            height: 28px;
+            background: var(--accent-red);
+            border-radius: 4px;
+        }
+        h3 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: var(--accent-blue);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 6px;
+            letter-spacing: 0.5px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        .section-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 20px;
+        }
+        label {
+            display: block;
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 6px;
+            color: var(--text-main);
+        }
+        input[type=number], input[type=text], select {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px 14px;
+            color: var(--text-main);
+            font-family: 'Outfit', sans-serif;
+            font-size: 14px;
+            width: 100%;
+            box-sizing: border-box;
+            transition: all 0.2s ease;
+            margin-bottom: 15px;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 8px rgba(0, 119, 255, 0.3);
+        }
+        .dynamic-fields-container {
+            max-height: 250px;
+            overflow-y: auto;
+            background: rgba(0,0,0,0.2);
+            border-radius: 8px;
+            padding: 12px;
+            border: 1px dashed rgba(255,255,255,0.05);
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+        .dynamic-field-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .dynamic-field-row:last-child {
+            margin-bottom: 0;
+        }
+        .dynamic-field-label {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 13px;
+            color: var(--text-muted);
+            width: 80px;
+            flex-shrink: 0;
+        }
+        .dynamic-field-row input {
+            margin-bottom: 0 !important;
+        }
+        button[type=submit] {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            font-size: 16px;
+            padding: 14px 30px;
+            background: var(--accent-blue);
+            border: 1px solid #0055d0;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.2s ease;
+            margin-top: 10px;
+            box-shadow: 0 4px 15px rgba(0, 119, 255, 0.4);
+        }
+        button[type=submit]:hover {
+            background: #0066ee;
+            border-color: #0077ff;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(0, 119, 255, 0.6);
+        }
+        .error-container {
+            background: rgba(255, 51, 68, 0.1);
+            border: 1px solid rgba(255, 51, 68, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 25px;
+            color: #ff8899;
+            font-size: 14px;
+        }
+        .error-container ul {
+            margin: 0 0 0 20px;
+            padding: 0;
+        }
+        .links-row {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+        .links-row a {
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+        .links-row a:hover {
+            color: var(--text-main);
+        }
+        /* Custom scrollbar */
+        .dynamic-fields-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        .dynamic-fields-container::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .dynamic-fields-container::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+        .dynamic-fields-container::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
     </style>
 </head>
 <body>
-<div class="card">
-    <h2>🚇 DMRC Track Layout Generator</h2>
-    {% for message in messages %}
-        <p class="error">{{ message }}</p>
-    {% endfor %}
-    <form method="POST" id="main-form">
-        {% csrf_token %}
+<div class="container">
+    <div class="card">
+        <h2>🚇 DMRC Custom Track Layout Panel</h2>
+        
+        {% if messages %}
+            <div class="error-container">
+                <strong>Please resolve the following errors:</strong>
+                <ul>
+                {% for message in messages %}
+                    <li>{{ message }}</li>
+                {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+        
+        <div id="js-error" class="error-container" style="display: none;"></div>
 
-        <label>Number of Stations:</label>
-        <input type="number" name="num_stations" id="num_stations" min="2" max="20" required>
+        <form method="POST" id="main-form" onsubmit="return validateForm()">
+            {% csrf_token %}
 
-        <label>Number of Crossovers:</label>
-        <input type="number" name="num_crossovers" id="num_crossovers" min="0" max="10"
-               oninput="generateCrossoverFields()" required>
+            <div class="grid">
+                <!-- UP LINE CARD -->
+                <div class="section-card">
+                    <h3>▲ UP Line Configuration</h3>
+                    
+                    <label>Number of Stations:</label>
+                    <input type="number" name="num_stations_up" id="num_stations_up" min="1" max="10" required
+                           oninput="generateUpStations()">
+                    
+                    <div id="up-stations-container" class="dynamic-fields-container"></div>
 
-        <div id="crossover-fields"></div>
+                    <label>Number of Track Circuits:</label>
+                    <input type="number" name="num_tc_up" id="num_tc_up" min="1" max="15" required
+                           oninput="generateUpTCs()">
 
-        <button type="submit">Generate Layout →</button>
-    </form>
-    <br>
-    <a href="{% url 'logout' %}" style="color:#aaa;">Logout</a>
+                    <div id="up-tc-container" class="dynamic-fields-container"></div>
+                </div>
+
+                <!-- DOWN LINE CARD -->
+                <div class="section-card">
+                    <h3>▼ DOWN Line Configuration</h3>
+                    
+                    <label>Number of Stations:</label>
+                    <input type="number" name="num_stations_down" id="num_stations_down" min="1" max="10" required
+                           oninput="generateDownStations()">
+                    
+                    <div id="down-stations-container" class="dynamic-fields-container"></div>
+
+                    <label>Number of Track Circuits:</label>
+                    <input type="number" name="num_tc_down" id="num_tc_down" min="1" max="15" required
+                           oninput="generateDownTCs()">
+
+                    <div id="down-tc-container" class="dynamic-fields-container"></div>
+                </div>
+            </div>
+
+            <div class="grid">
+                <!-- CROSSOVERS CARD -->
+                <div class="section-card">
+                    <h3>🔗 Crossovers (Turnouts)</h3>
+                    
+                    <label>Number of Crossovers:</label>
+                    <input type="number" name="num_crossovers" id="num_crossovers" min="0" max="8" required
+                           oninput="generateCrossovers()">
+                    
+                    <div id="crossovers-container" class="dynamic-fields-container"></div>
+                </div>
+
+                <!-- SIGNALS CARD -->
+                <div class="section-card">
+                    <h3>🚦 Wayside Signals</h3>
+                    
+                    <label>Number of Signals:</label>
+                    <input type="number" name="num_signals" id="num_signals" min="0" max="10" required
+                           oninput="generateSignals()">
+                    
+                    <div id="signals-container" class="dynamic-fields-container"></div>
+                </div>
+            </div>
+
+            <button type="submit">Generate Layout & Run Simulation →</button>
+        </form>
+        
+        <div class="links-row">
+            <a href="{% url 'logout' %}">Logout</a>
+            <span style="color: var(--text-muted);">Delhi Metro Rail Corporation</span>
+        </div>
+    </div>
 </div>
 
 <script>
-function generateCrossoverFields() {
-    const n = parseInt(document.getElementById('num_crossovers').value) || 0;
-    const container = document.getElementById('crossover-fields');
+// Render default or database-provided values
+const initialData = {{ layout_data_json|safe }};
+
+// Initialize form elements on load
+window.onload = function() {
+    document.getElementById('num_stations_up').value = initialData.stations_up ? initialData.stations_up.length : 3;
+    document.getElementById('num_stations_down').value = initialData.stations_down ? initialData.stations_down.length : 3;
+    document.getElementById('num_tc_up').value = initialData.tc_lengths_up ? initialData.tc_lengths_up.length : 4;
+    document.getElementById('num_tc_down').value = initialData.tc_lengths_down ? initialData.tc_lengths_down.length : 4;
+    document.getElementById('num_crossovers').value = initialData.crossovers ? initialData.crossovers.length : 2;
+    document.getElementById('num_signals').value = initialData.signals ? initialData.signals.length : 4;
+
+    generateUpStations(initialData.stations_up);
+    generateDownStations(initialData.stations_down);
+    generateUpTCs(initialData.tc_lengths_up);
+    generateDownTCs(initialData.tc_lengths_down);
+    generateCrossovers(initialData.crossovers);
+    generateSignals(initialData.signals);
+};
+
+function generateUpStations(savedValues = null) {
+    const n = parseInt(document.getElementById('num_stations_up').value) || 0;
+    const container = document.getElementById('up-stations-container');
     container.innerHTML = '';
     for (let i = 1; i <= n; i++) {
+        const val = (savedValues && savedValues[i-1]) ? savedValues[i-1] : `UP-ST-${i}`;
         container.innerHTML += `
-            <div style="margin:10px 0; background:#0f3460; padding:10px; border-radius:5px;">
-                <strong>Crossover ${i}:</strong>
-                From Station <input type="number" name="from_station_${i}" min="1" style="width:60px" required>
-                → To Station <input type="number" name="to_station_${i}" min="1" style="width:60px" required>
+            <div class="dynamic-field-row">
+                <span class="dynamic-field-label">ST-${String(i).padStart(2, '0')} Name:</span>
+                <input type="text" name="st_up_name_${i}" value="${val}" required placeholder="e.g. Dwarka">
             </div>`;
     }
+}
+
+function generateDownStations(savedValues = null) {
+    const n = parseInt(document.getElementById('num_stations_down').value) || 0;
+    const container = document.getElementById('down-stations-container');
+    container.innerHTML = '';
+    for (let i = 1; i <= n; i++) {
+        const val = (savedValues && savedValues[i-1]) ? savedValues[i-1] : `DN-ST-${i}`;
+        container.innerHTML += `
+            <div class="dynamic-field-row">
+                <span class="dynamic-field-label">ST-${String(i).padStart(2, '0')} Name:</span>
+                <input type="text" name="st_down_name_${i}" value="${val}" required placeholder="e.g. Noida">
+            </div>`;
+    }
+}
+
+function generateUpTCs(savedValues = null) {
+    const n = parseInt(document.getElementById('num_tc_up').value) || 0;
+    const container = document.getElementById('up-tc-container');
+    container.innerHTML = '';
+    for (let i = 1; i <= n; i++) {
+        const val = (savedValues && savedValues[i-1]) ? savedValues[i-1] : 250;
+        container.innerHTML += `
+            <div class="dynamic-field-row">
+                <span class="dynamic-field-label">TC-UP-${i}:</span>
+                <input type="number" name="tc_up_len_${i}" value="${val}" min="10" max="2000" required placeholder="Length (m)">
+            </div>`;
+    }
+}
+
+function generateDownTCs(savedValues = null) {
+    const n = parseInt(document.getElementById('num_tc_down').value) || 0;
+    const container = document.getElementById('down-tc-container');
+    container.innerHTML = '';
+    for (let i = 1; i <= n; i++) {
+        const val = (savedValues && savedValues[i-1]) ? savedValues[i-1] : 250;
+        container.innerHTML += `
+            <div class="dynamic-field-row">
+                <span class="dynamic-field-label">TC-DN-${i}:</span>
+                <input type="number" name="tc_down_len_${i}" value="${val}" min="10" max="2000" required placeholder="Length (m)">
+            </div>`;
+    }
+}
+
+function generateCrossovers(savedValues = null) {
+    const n = parseInt(document.getElementById('num_crossovers').value) || 0;
+    const container = document.getElementById('crossovers-container');
+    container.innerHTML = '';
+    for (let i = 1; i <= n; i++) {
+        const defaultPos = (i === 1) ? 15 : (i === n ? 85 : Math.floor(15 + (70 / (n - 1)) * (i - 1)));
+        const posVal = (savedValues && savedValues[i-1]) ? savedValues[i-1].position : defaultPos;
+        const typeVal = (savedValues && savedValues[i-1]) ? savedValues[i-1].type : (i === 1 ? 'down_to_up' : 'up_to_down');
+        
+        container.innerHTML += `
+            <div class="dynamic-field-row" style="flex-wrap: wrap; background: rgba(255,255,255,0.02); padding: 8px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 8px;">
+                <span class="dynamic-field-label" style="width: 100%;">Crossover ${i}</span>
+                <div style="display: flex; gap: 8px; width: 100%; margin-top: 4px;">
+                    <div style="flex: 1;">
+                        <span style="font-size: 11px; color: var(--text-muted);">Position (0-100%):</span>
+                        <input type="number" name="co_pos_${i}" value="${posVal}" min="1" max="99" required>
+                    </div>
+                    <div style="flex: 1.5;">
+                        <span style="font-size: 11px; color: var(--text-muted);">Type:</span>
+                        <select name="co_type_${i}" required>
+                            <option value="up_to_down" ${typeVal === 'up_to_down' ? 'selected' : ''}>UP to DOWN</option>
+                            <option value="down_to_up" ${typeVal === 'down_to_up' ? 'selected' : ''}>DOWN to UP</option>
+                        </select>
+                    </div>
+                </div>
+            </div>`;
+    }
+}
+
+function generateSignals(savedValues = null) {
+    const n = parseInt(document.getElementById('num_signals').value) || 0;
+    const container = document.getElementById('signals-container');
+    container.innerHTML = '';
+    for (let i = 1; i <= n; i++) {
+        const defaultLine = (i % 2 === 1) ? 'up' : 'down';
+        const defaultPos = Math.floor(20 + 60 * Math.random());
+        const lineVal = (savedValues && savedValues[i-1]) ? savedValues[i-1].line : defaultLine;
+        const posVal = (savedValues && savedValues[i-1]) ? savedValues[i-1].position : defaultPos;
+        
+        container.innerHTML += `
+            <div class="dynamic-field-row" style="flex-wrap: wrap; background: rgba(255,255,255,0.02); padding: 8px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 8px;">
+                <span class="dynamic-field-label" style="width: 100%;">Signal ${i}</span>
+                <div style="display: flex; gap: 8px; width: 100%; margin-top: 4px;">
+                    <div style="flex: 1;">
+                        <span style="font-size: 11px; color: var(--text-muted);">Line:</span>
+                        <select name="sig_line_${i}" required>
+                            <option value="up" ${lineVal === 'up' ? 'selected' : ''}>UP</option>
+                            <option value="down" ${lineVal === 'down' ? 'selected' : ''}>DOWN</option>
+                        </select>
+                    </div>
+                    <div style="flex: 1;">
+                        <span style="font-size: 11px; color: var(--text-muted);">Position (0-100%):</span>
+                        <input type="number" name="sig_pos_${i}" value="${posVal}" min="1" max="99" required>
+                    </div>
+                </div>
+            </div>`;
+    }
+}
+
+function validateForm() {
+    const errorDiv = document.getElementById('js-error');
+    errorDiv.style.display = 'none';
+    errorDiv.innerHTML = '';
+    
+    const numCrossovers = parseInt(document.getElementById('num_crossovers').value) || 0;
+    if (numCrossovers > 0) {
+        // Collect crossovers with indices and positions
+        const cos = [];
+        for (let i = 1; i <= numCrossovers; i++) {
+            const pos = parseInt(document.getElementsByName(`co_pos_${i}`)[0].value) || 0;
+            const type = document.getElementsByName(`co_type_${i}`)[0].value;
+            cos.push({ index: i, position: pos, type: type });
+        }
+        
+        // Sort crossovers by position
+        cos.sort((a, b) => a.position - b.position);
+        
+        // Check simulation loop loopback physical constraints
+        const leftmost = cos[0];
+        const rightmost = cos[cos.length - 1];
+        
+        const errors = [];
+        if (leftmost.type !== 'down_to_up') {
+            errors.push(`Leftmost Crossover (Crossover ${leftmost.index} at position ${leftmost.position}%) must be <strong>DOWN to UP</strong> to route trains back onto the UP line.`);
+        }
+        if (rightmost.type !== 'up_to_down') {
+            errors.push(`Rightmost Crossover (Crossover ${rightmost.index} at position ${rightmost.position}%) must be <strong>UP to DOWN</strong> to route trains onto the DOWN line.`);
+        }
+        
+        if (errors.length > 0) {
+            errorDiv.style.display = 'block';
+            errorDiv.innerHTML = `<strong>Physically Invalid Crossover Routing:</strong><br><ul>${errors.map(e => `<li>${e}</li>`).join('')}</ul>`;
+            // Scroll to error
+            errorDiv.scrollIntoView({ behavior: 'smooth' });
+            return false;
+        }
+    }
+    return true;
 }
 </script>
 </body>
