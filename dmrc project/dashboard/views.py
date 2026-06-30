@@ -268,18 +268,15 @@ def input_view(request):
     if request.method == 'POST':
         try:
             # 1. Parse station counts and names
-            num_stations_up = int(request.POST.get('num_stations_up', 0))
-            num_stations_down = int(request.POST.get('num_stations_down', 0))
+            num_stations = int(request.POST.get('num_stations', 0))
             
-            stations_up = []
-            for i in range(1, num_stations_up + 1):
-                name = request.POST.get(f'st_up_name_{i}', f'UP-ST-{i}').strip()
-                stations_up.append(name)
+            stations = []
+            for i in range(1, num_stations + 1):
+                name = request.POST.get(f'st_name_{i}', f'ST-{i}').strip()
+                stations.append(name)
                 
-            stations_down = []
-            for i in range(1, num_stations_down + 1):
-                name = request.POST.get(f'st_down_name_{i}', f'DN-ST-{i}').strip()
-                stations_down.append(name)
+            stations_up = list(stations)
+            stations_down = list(stations)
 
             # 2. Parse track circuit counts and lengths
             num_tc_up = int(request.POST.get('num_tc_up', 0))
@@ -326,7 +323,7 @@ def input_view(request):
             # Save Layout model
             layout = Layout.objects.create(
                 user=request.user,
-                num_stations=len(stations_up) + len(stations_down),
+                num_stations=len(stations_up),
                 num_crossovers=len(crossovers_data),
                 layout_data=json.dumps(layout_data_dict)
             )
@@ -699,7 +696,7 @@ class TrainSimEngine:
         stop_target_dist = None
         target_station_obj = None
         if current_seg['track'] == 'up':
-            valid_stations = [s for s in self.stations if current_seg['x1'] < s['x'] <= current_seg['x2']]
+            valid_stations = [s for s in self.stations if s['line'] == 'up' and current_seg['x1'] < s['x'] <= current_seg['x2']]
             valid_stations.sort(key=lambda s: s['x'])
             for s in valid_stations:
                 d_station = s['x'] - current_seg['x1']
@@ -708,7 +705,7 @@ class TrainSimEngine:
                     target_station_obj = s
                     break
         elif current_seg['track'] == 'down':
-            valid_stations = [s for s in self.stations if current_seg['x2'] <= s['x'] < current_seg['x1']]
+            valid_stations = [s for s in self.stations if s['line'] == 'down' and current_seg['x2'] <= s['x'] < current_seg['x1']]
             valid_stations.sort(key=lambda s: s['x'], reverse=True)
             for s in valid_stations:
                 d_station = current_seg['x1'] - s['x']
@@ -970,5 +967,7 @@ def simulation_tick(request):
     
     from django.http import JsonResponse
     return JsonResponse(response_data)
+
+
 
 
