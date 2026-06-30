@@ -223,17 +223,22 @@
         <form method="POST" id="main-form" onsubmit="return validateForm()">
             {% csrf_token %}
 
+            <!-- COMMON STATION CONFIGURATION CARD -->
+            <div class="section-card" style="margin-bottom: 30px;">
+                <h3>🚉 Station Configuration (Common for UP & DOWN Lines)</h3>
+                
+                <label>Number of Stations:</label>
+                <input type="number" name="num_stations" id="num_stations" min="1" max="10" required
+                       oninput="generateStations()">
+                
+                <div id="stations-container" class="dynamic-fields-container"></div>
+            </div>
+
             <div class="grid">
                 <!-- UP LINE CARD -->
                 <div class="section-card">
                     <h3>▲ UP Line Configuration</h3>
                     
-                    <label>Number of Stations:</label>
-                    <input type="number" name="num_stations_up" id="num_stations_up" min="1" max="10" required
-                           oninput="generateUpStations()">
-                    
-                    <div id="up-stations-container" class="dynamic-fields-container"></div>
-
                     <label>Number of Track Circuits:</label>
                     <input type="number" name="num_tc_up" id="num_tc_up" min="1" max="15" required
                            oninput="generateUpTCs()">
@@ -245,12 +250,6 @@
                 <div class="section-card">
                     <h3>▼ DOWN Line Configuration</h3>
                     
-                    <label>Number of Stations:</label>
-                    <input type="number" name="num_stations_down" id="num_stations_down" min="1" max="10" required
-                           oninput="generateDownStations()">
-                    
-                    <div id="down-stations-container" class="dynamic-fields-container"></div>
-
                     <label>Number of Track Circuits:</label>
                     <input type="number" name="num_tc_down" id="num_tc_down" min="1" max="15" required
                            oninput="generateDownTCs()">
@@ -299,45 +298,39 @@ const initialData = {{ layout_data_json|safe }};
 
 // Initialize form elements on load
 window.onload = function() {
-    document.getElementById('num_stations_up').value = initialData.stations_up ? initialData.stations_up.length : 3;
-    document.getElementById('num_stations_down').value = initialData.stations_down ? initialData.stations_down.length : 3;
+    let defaultNumStations = 3;
+    let savedStations = null;
+    if (initialData.stations_up && initialData.stations_up.length > 0) {
+        defaultNumStations = initialData.stations_up.length;
+        savedStations = initialData.stations_up;
+    } else if (initialData.stations_down && initialData.stations_down.length > 0) {
+        defaultNumStations = initialData.stations_down.length;
+        savedStations = initialData.stations_down;
+    }
+
+    document.getElementById('num_stations').value = defaultNumStations;
     document.getElementById('num_tc_up').value = initialData.tc_lengths_up ? initialData.tc_lengths_up.length : 4;
     document.getElementById('num_tc_down').value = initialData.tc_lengths_down ? initialData.tc_lengths_down.length : 4;
     document.getElementById('num_crossovers').value = initialData.crossovers ? initialData.crossovers.length : 2;
     document.getElementById('num_signals').value = initialData.signals ? initialData.signals.length : 4;
 
-    generateUpStations(initialData.stations_up);
-    generateDownStations(initialData.stations_down);
+    generateStations(savedStations);
     generateUpTCs(initialData.tc_lengths_up);
     generateDownTCs(initialData.tc_lengths_down);
     generateCrossovers(initialData.crossovers);
     generateSignals(initialData.signals);
 };
 
-function generateUpStations(savedValues = null) {
-    const n = parseInt(document.getElementById('num_stations_up').value) || 0;
-    const container = document.getElementById('up-stations-container');
+function generateStations(savedValues = null) {
+    const n = parseInt(document.getElementById('num_stations').value) || 0;
+    const container = document.getElementById('stations-container');
     container.innerHTML = '';
     for (let i = 1; i <= n; i++) {
-        const val = (savedValues && savedValues[i-1]) ? savedValues[i-1] : `UP-ST-${i}`;
+        const val = (savedValues && savedValues[i-1]) ? savedValues[i-1] : `Station ${i}`;
         container.innerHTML += `
             <div class="dynamic-field-row">
                 <span class="dynamic-field-label">ST-${String(i).padStart(2, '0')} Name:</span>
-                <input type="text" name="st_up_name_${i}" value="${val}" required placeholder="e.g. Dwarka">
-            </div>`;
-    }
-}
-
-function generateDownStations(savedValues = null) {
-    const n = parseInt(document.getElementById('num_stations_down').value) || 0;
-    const container = document.getElementById('down-stations-container');
-    container.innerHTML = '';
-    for (let i = 1; i <= n; i++) {
-        const val = (savedValues && savedValues[i-1]) ? savedValues[i-1] : `DN-ST-${i}`;
-        container.innerHTML += `
-            <div class="dynamic-field-row">
-                <span class="dynamic-field-label">ST-${String(i).padStart(2, '0')} Name:</span>
-                <input type="text" name="st_down_name_${i}" value="${val}" required placeholder="e.g. Noida">
+                <input type="text" name="st_name_${i}" value="${val}" required placeholder="e.g. Dwarka Sec 21">
             </div>`;
     }
 }
