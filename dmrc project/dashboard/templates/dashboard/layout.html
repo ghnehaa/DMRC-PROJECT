@@ -1,244 +1,321 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>DMRC Operations Control Centre — Live Simulation</title>
-    <!-- Import Outfit Google Font for a modern premium look -->
+    <title>Delhi Metro Line 7 - ATS/CBI/ATP Operation Simulator</title>
+    <!-- Import Outfit Google Font -->
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-color: #05050f;
-            --card-bg: rgba(13, 13, 29, 0.7);
+            --bg-color: #1a1a2e;
+            --panel-bg: rgba(13, 13, 29, 0.75);
             --border-color: rgba(68, 136, 255, 0.2);
+            --text-main: white;
+            --text-muted: #444444;
+            --btn-bg: rgba(23, 23, 51, 0.75);
             --accent-red: #ff3344;
             --accent-green: #00ff88;
             --accent-yellow: #ffd700;
-            --accent-violet: #df40ff;
-            --text-main: #f0f2fa;
-            --text-muted: #8a90a6;
         }
         body {
             font-family: 'Outfit', sans-serif;
             background: var(--bg-color);
             color: var(--text-main);
-            padding: 24px;
+            padding: 15px;
             margin: 0;
-            background-image: 
-                radial-gradient(at 0% 0%, rgba(20, 20, 50, 0.3) 0px, transparent 50%),
-                radial-gradient(at 50% 0%, rgba(0, 53, 128, 0.15) 0px, transparent 50%);
             min-height: 100vh;
         }
+        /* Top Header Panel */
         .header-container {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            padding: 8px 16px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 15px;
+            margin-bottom: 10px;
         }
-        h2 {
-            font-size: 26px;
+        .header-left {
+            display: flex;
+            flex-direction: column;
+        }
+        .header-left h1 {
+            font-size: 20px;
             font-weight: 800;
             margin: 0;
-            background: linear-gradient(135deg, #fff 30%, var(--text-muted) 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            color: var(--text-main);
             letter-spacing: -0.5px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
         }
-        h2::before {
-            content: '';
-            display: inline-block;
-            width: 8px;
-            height: 24px;
-            background: var(--accent-red);
-            border-radius: 4px;
-        }
-        .status-badge {
+        .header-left span {
             font-family: 'Share Tech Mono', monospace;
-            background: rgba(0, 255, 136, 0.1);
-            color: var(--accent-green);
-            border: 1px solid rgba(0, 255, 136, 0.2);
-            padding: 4px 10px;
-            border-radius: 12px;
             font-size: 13px;
+            color: var(--text-muted);
         }
-        .actions {
+        .header-right {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .status-box {
+            background: var(--btn-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 4px 12px;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 13px;
+            font-weight: bold;
+            text-align: center;
+            min-width: 80px;
+        }
+        /* Control Ribbons */
+        .control-ribbon {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            padding: 6px 12px;
             display: flex;
             gap: 12px;
+            align-items: center;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+            font-size: 13px;
         }
-        .actions a, .actions button {
+        .control-ribbon label {
+            font-weight: bold;
+            color: var(--text-main);
+        }
+        .control-ribbon select {
+            padding: 2px 6px;
+            font-size: 12px;
+            border: 1px solid var(--border-color);
+            background: #ffffff;
             font-family: 'Outfit', sans-serif;
-            font-weight: 600;
-            padding: 8px 20px;
-            background: rgba(68, 136, 255, 0.1);
+        }
+        .btn-action {
+            background: var(--btn-bg);
             color: var(--text-main);
             border: 1px solid var(--border-color);
-            border-radius: 8px;
-            text-decoration: none;
+            padding: 3px 10px;
+            font-size: 12px;
+            font-weight: 600;
             cursor: pointer;
-            font-size: 14px;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            gap: 6px;
+            border-radius: 2px;
+            transition: all 0.15s ease;
         }
-        .actions a:hover, .actions button:hover {
-            background: rgba(68, 136, 255, 0.25);
-            border-color: rgba(68, 136, 255, 0.5);
-            transform: translateY(-1px);
+        .btn-action:hover {
+            background: #c5c5c5;
         }
-        .actions .btn-primary {
-            background: #003580;
-            border-color: #0055d0;
+        .btn-action.btn-green {
+            background: #a3e2a3;
+            color: #004d00;
+            border-color: #5bb35b;
         }
-        .actions .btn-primary:hover {
-            background: #004dc0;
-            border-color: #0077ff;
+        .btn-action.btn-green:hover {
+            background: #90d390;
         }
-        /* HUD Dashboard Panel */
+        /* HUD Indicators Panel */
         .hud-panel {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 16px;
-            margin-bottom: 24px;
+            gap: 12px;
+            margin-bottom: 12px;
         }
         .hud-card {
-            background: var(--card-bg);
+            background: var(--panel-bg);
             border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 16px;
-            backdrop-filter: blur(10px);
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-            position: relative;
-            overflow: hidden;
-        }
-        .hud-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 3px;
-            background: linear-gradient(90deg, transparent, var(--border-color), transparent);
+            border-radius: 4px;
+            padding: 10px 14px;
+            box-shadow: inset 0 0 4px rgba(0,0,0,0.05);
         }
         .hud-label {
-            font-size: 12px;
+            font-size: 11px;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            font-weight: bold;
             color: var(--text-muted);
-            margin-bottom: 8px;
+            margin-bottom: 4px;
         }
         .hud-value {
             font-family: 'Share Tech Mono', monospace;
-            font-size: 28px;
+            font-size: 24px;
             font-weight: bold;
             color: var(--text-main);
-            display: flex;
-            align-items: baseline;
-            gap: 4px;
         }
-        .hud-unit {
-            font-size: 14px;
-            color: var(--text-muted);
-            font-family: 'Outfit', sans-serif;
-            font-weight: 300;
-        }
-        .text-green { color: var(--accent-green); }
-        .text-yellow { color: var(--accent-yellow); }
+        .text-green { color: #006622; }
+        .text-yellow { color: #886600; }
         .text-red { color: var(--accent-red); }
-        .text-violet { color: var(--accent-violet); }
+        .text-violet { color: #800080; }
+        
         /* SVG Simulator Wrapper */
         .canvas-container {
-            background: #070714;
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
+            background: rgba(13, 13, 29, 0.75);
+            border: 2px solid var(--border-color);
             overflow: hidden;
-            box-shadow: inset 0 0 40px rgba(0,0,0,0.5), 0 10px 30px rgba(0,0,0,0.4);
-            margin-bottom: 24px;
+            margin-bottom: 12px;
+            position: relative;
         }
         svg {
             display: block;
             width: 100%;
             height: auto;
+            background: #b0b0b0;
         }
-        .legend {
-            background: var(--card-bg);
+        
+        /* Table Layouts */
+        .table-section-title {
+            margin-top: 15px;
+            margin-bottom: 6px;
+            font-size: 14px;
+            font-weight: bold;
+            text-transform: uppercase;
+            color: var(--text-main);
+            border-bottom: 2px solid #555555;
+            padding-bottom: 3px;
+        }
+        .scada-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--panel-bg);
             border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 18px 24px;
-            font-size: 13px;
+            font-size: 12px;
+            margin-bottom: 15px;
+        }
+        .scada-table th {
+            background: #c5c5c5;
+            border-bottom: 1px solid var(--border-color);
+            border-right: 1px solid var(--border-color);
+            padding: 5px 10px;
+            text-align: left;
+            font-weight: bold;
+        }
+        .scada-table td {
+            padding: 5px 10px;
+            border-bottom: 1px solid #c0c0c0;
+            border-right: 1px solid var(--border-color);
+        }
+        .scada-table tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .legend {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            padding: 8px 16px;
+            font-size: 12px;
             color: var(--text-muted);
             display: flex;
-            gap: 32px;
+            gap: 20px;
             flex-wrap: wrap;
             align-items: center;
+            margin-bottom: 12px;
         }
         .leg-title {
             font-weight: 600;
             color: var(--text-main);
             text-transform: uppercase;
-            letter-spacing: 0.5px;
         }
         .leg {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
         }
         .leg-line {
-            width: 30px;
+            width: 25px;
             height: 4px;
-            border-radius: 2px;
-            box-shadow: 0 0 8px currentColor;
+            border-radius: 1px;
         }
         .leg-box {
-            width: 14px;
-            height: 14px;
-            border-radius: 3px;
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
         }
         .leg-dot {
             width: 8px;
             height: 8px;
             border-radius: 50%;
-            box-shadow: 0 0 6px currentColor;
         }
     </style>
 </head>
 <body>
+
 <div class="header-container">
-    <h2>DMRC Track Operations Centre</h2>
-    <div class="actions">
-        <span class="status-badge" id="op-status">SYSTEM ACTIVE / AUTO RUN</span>
-        <a href="{% url 'input' %}">← Configure Layout</a>
-        <a href="{% url 'export_csv' %}">⬇ Export CSV</a>
-        <a href="{% url 'logout' %}">Logout</a>
-        <button onclick="toggleSim()" class="btn-primary" id="btn-pause">Pause Operations</button>
+    <div class="header-left">
+        <h1>Delhi Metro Line 7 - ATS/CBI/ATP Operation Simulator</h1>
+        <span>Simulator ATS_CONTROLLER</span>
+    </div>
+    <div class="header-right">
+        <div class="status-box" id="sim-running-status">RUNNING</div>
+        <div class="status-box">MANUAL</div>
+        <div class="status-box" id="sim-clock">Clock 06:01</div>
+        <div class="status-box">CMD 0002</div>
+        <div class="status-box" style="color: #ff3344;" id="alarm-count-badge">1 Active Alarms</div>
     </div>
 </div>
+
+<!-- Primary Route Control Ribbon -->
+<div class="control-ribbon">
+    <label>Route</label>
+    <select id="route-select">
+        <option>R16 S13-S15</option>
+    </select>
+    <label>From</label>
+    <select id="from-select">
+        <option>S13</option>
+    </select>
+    <label>To</label>
+    <select id="to-select">
+        <option>S15</option>
+    </select>
+    
+    <button class="btn-action">Set Signal Route</button>
+    <button class="btn-action">Set Selected</button>
+    <button class="btn-action">Cancel Selected</button>
+    <button class="btn-action">Emergency Release</button>
+    <button class="btn-action btn-green">TURNBACK</button>
+    <button onclick="toggleSim()" class="btn-action" id="btn-pause">Pause</button>
+    <button onclick="location.reload()" class="btn-action">Reset</button>
+    
+    <div style="margin-left: auto;">
+        <span style="font-family: 'Share Tech Mono', monospace; font-weight: bold; font-size: 13px;" id="op-status">RUNNING</span>
+    </div>
+</div>
+
+<!-- Secondary Actions Strip -->
+<div class="control-ribbon" style="background: #c5c5c5;">
+    <button class="btn-action" style="padding: 2px 8px;">🔍+</button>
+    <button class="btn-action" style="padding: 2px 8px;">🔍-</button>
+    <button class="btn-action" style="padding: 2px 8px;">[ 🗖 ]</button>
+    <button class="btn-action">Section</button>
+    <button class="btn-action">Station View</button>
+    <button class="btn-action">Hold</button>
+    <button class="btn-action">Release</button>
+    <button class="btn-action">Skip Stop</button>
+    <button class="btn-action">Turnback</button>
+    <button class="btn-action">Ack Alarms</button>
+</div>
+
 <!-- Telemetry HUD Dashboard -->
 <div class="hud-panel">
     <div class="hud-card">
         <div class="hud-label">Train Speed</div>
-        <div class="hud-value"><span id="hud-speed">0.0</span><span class="hud-unit">km/h</span></div>
+        <div class="hud-value"><span id="hud-speed">0.0</span> km/h</div>
     </div>
     <div class="hud-card">
         <div class="hud-label">Acceleration</div>
-        <div class="hud-value"><span id="hud-acc" class="text-green">+0.00</span><span class="hud-unit">m/s²</span></div>
+        <div class="hud-value"><span id="hud-acc" class="text-green">+0.00</span> m/s²</div>
     </div>
     <div class="hud-card">
         <div class="hud-label">Active Block</div>
-        <div class="hud-value" id="hud-block" style="font-size: 20px;">UP LINE</div>
+        <div class="hud-value" id="hud-block">UP LINE</div>
     </div>
     <div class="hud-card">
         <div class="hud-label">Station Dwell</div>
-        <div class="hud-value"><span id="hud-dwell">-</span><span class="hud-unit">sec</span></div>
+        <div class="hud-value"><span id="hud-dwell">-</span> sec</div>
     </div>
     <div class="hud-card">
         <div class="hud-label">Signal Ahead</div>
-        <div class="hud-value" id="hud-signal" style="font-size: 22px; font-weight: 600;">GREEN</div>
+        <div class="hud-value" id="hud-signal" style="font-size: 20px;">GREEN</div>
     </div>
 </div>
+
+<!-- Canvas Area -->
 <div class="canvas-container">
     <svg id="track-svg" viewBox="0 0 {{ svg_width }} {{ svg_height }}" width="100%" height="400"
          xmlns="http://www.w3.org/2000/svg">
@@ -246,126 +323,156 @@
         <!-- Glow Filter for active lights and tracks -->
         <defs>
             <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-                <feGaussianBlur stdDeviation="3" result="blur" />
+                <feGaussianBlur stdDeviation="2" result="blur" />
                 <feComposite in="SourceGraphic" in2="blur" operator="over" />
             </filter>
         </defs>
-        <text x="15" y="{{ up_y|add:-22 }}" fill="#00ff88" font-size="12" font-family="'Share Tech Mono', monospace" font-weight="bold" letter-spacing="1">▲ UP LINE (WEST TO EAST)</text>
-        <text x="15" y="{{ down_y|add:32 }}" fill="#ffd700" font-size="12" font-family="'Share Tech Mono', monospace" font-weight="bold" letter-spacing="1">▼ DOWN LINE (EAST TO WEST)</text>
+        
+        <text x="15" y="{{ up_y|add:-32 }}" fill="#003366" font-size="11" font-family="'Share Tech Mono', monospace" font-weight="bold" letter-spacing="1">▲ UP LINE (WEST TO EAST)</text>
+        <text x="15" y="{{ down_y|add:40 }}" fill="#003366" font-size="11" font-family="'Share Tech Mono', monospace" font-weight="bold" letter-spacing="1">▼ DOWN LINE (EAST TO WEST)</text>
+        
+        <!-- Enclosures & SCADA Station Elements Group -->
+        <g id="scada-annotations"></g>
+        
         <!-- ── TRACK SEGMENTS (Dynamic blocks) ── -->
         <g id="up-track-segments"></g>
         <g id="down-track-segments"></g>
+        
         <!-- ── DEPOTS ── -->
         {% for dp in depots %}
             <g id="depot-{{ forloop.counter }}">
                 <!-- Connecting turnout curve -->
                 <path d="M {{ dp.x1 }} {{ dp.y1 }} Q {{ dp.x1|add:10 }} {{ dp.y2 }} {{ dp.x2 }} {{ dp.y2 }}" 
-                      fill="none" stroke="#ff8800" stroke-width="2.5" stroke-dasharray="4,2"/>
+                      fill="none" stroke="#666666" stroke-width="2.5" stroke-dasharray="4,2"/>
                 <!-- Depot parking siding -->
                 <line x1="{{ dp.x2 }}" y1="{{ dp.y2 }}" x2="{{ dp.x2|add:65 }}" y2="{{ dp.y2 }}"
-                      stroke="#ff8800" stroke-width="3.5" filter="url(#glow)"/>
-                <!-- Indicator dot -->
-                <circle cx="{{ dp.x1 }}" cy="{{ dp.y1 }}" r="4" fill="#ff8800"/>
+                      stroke="#885500" stroke-width="3"/>
                 <!-- Depot shed box -->
                 <rect x="{{ dp.x2|add:2 }}" y="{{ dp.y2|add:-13 }}" width="66" height="26"
-                      fill="#150a00" stroke="#ff8800" stroke-width="1.5" rx="3"/>
+                      fill="#e0e0e0" stroke="#777777" stroke-width="1.5" rx="3"/>
                 <text x="{{ dp.x2|add:35 }}" y="{{ dp.y2|add:4 }}" text-anchor="middle"
-                      fill="#ff8800" font-size="8" font-family="'Outfit', sans-serif" font-weight="bold">DEPOT ST{{ dp.near_station }}</text>
+                      fill="#000000" font-size="8" font-family="'Outfit', sans-serif" font-weight="bold">DEPOT ST{{ dp.near_station }}</text>
             </g>
         {% endfor %}
+        
         <!-- ── CROSSOVERS (Turnouts) ── -->
         {% for co in crossovers %}
             <g id="crossover-{{ co.index }}">
                 <!-- Track overlays: wipes out main lines locally behind turnout switches -->
-                <rect x="{{ co.x_left }}" y="{{ up_y|add:-3 }}" width="{{ co.width }}" height="6" fill="#070714"/>
-                <rect x="{{ co.x_left }}" y="{{ down_y|add:-3 }}" width="{{ co.width }}" height="6" fill="#070714"/>
+                <rect x="{{ co.x_left }}" y="{{ up_y|add:-4 }}" width="{{ co.width }}" height="8" fill="#b0b0b0"/>
+                <rect x="{{ co.x_left }}" y="{{ down_y|add:-4 }}" width="{{ co.width }}" height="8" fill="#b0b0b0"/>
                 
                 <!-- Crossover Diagonal Line based on Turnout Type (No scissors) -->
                 {% if co.type == 'up_to_down' %}
                     <line x1="{{ co.x_left }}" y1="{{ up_y }}" x2="{{ co.x_right }}" y2="{{ down_y }}" 
-                          stroke="#ff3344" stroke-width="3" stroke-linecap="round"/>
-                    <circle cx="{{ co.x_left }}" cy="{{ up_y }}" r="4.5" fill="#ff3344"/>
-                    <circle cx="{{ co.x_right }}" cy="{{ down_y }}" r="4.5" fill="#ff3344"/>
+                          stroke="#ffd700" stroke-width="3.5" stroke-linecap="round"/>
+                    <circle cx="{{ co.x_left }}" cy="{{ up_y }}" r="4.5" fill="#444444"/>
+                    <circle cx="{{ co.x_right }}" cy="{{ down_y }}" r="4.5" fill="#444444"/>
                 {% else %}
                     <line x1="{{ co.x_left }}" y1="{{ down_y }}" x2="{{ co.x_right }}" y2="{{ up_y }}" 
-                          stroke="#ff3344" stroke-width="3" stroke-linecap="round"/>
-                    <circle cx="{{ co.x_left }}" cy="{{ down_y }}" r="4.5" fill="#ff3344"/>
-                    <circle cx="{{ co.x_right }}" cy="{{ up_y }}" r="4.5" fill="#ff3344"/>
-                {% endif %}
-                <!-- Small label box -->
-                <rect x="{{ co.mid_x|add:-22 }}" y="{{ co.mid_y|add:-9 }}" width="44" height="18"
-                      fill="#1a0508" stroke="#ff3344" stroke-width="1.2" rx="4"/>
-                <text x="{{ co.mid_x }}" y="{{ co.mid_y|add:3 }}" text-anchor="middle"
-                      fill="#ff3344" font-size="8.5" font-family="'Share Tech Mono', monospace" font-weight="bold">XOV-{{ co.index }}</text>
-            </g>
-        {% endfor %}
-        <!-- ── STATIONS ── -->
-        {% for s in stations %}
-            <g id="station-group-{{ s.number }}">
-                {% if s.line == 'up' %}
-                    <!-- Station Title Header (UP Line) -->
-                    <text x="{{ s.x }}" y="{{ s.box_up_y|add:-10 }}" text-anchor="middle"
-                          fill="#88ccff" font-size="11" font-family="'Outfit', sans-serif" font-weight="600" letter-spacing="0.5">{{ s.label }}</text>
-                    <!-- Platform 01 (UP) -->
-                    <rect x="{{ s.box_x }}" y="{{ s.box_up_y }}" width="{{ s.width }}" height="{{ s.height }}"
-                          fill="#00224d" stroke="#00ff88" stroke-width="2.5" rx="4" filter="url(#glow)"/>
-                    <text x="{{ s.x }}" y="{{ s.up_y|add:1 }}" text-anchor="middle" dominant-baseline="middle"
-                          fill="white" font-size="9.5" font-family="'Outfit', sans-serif" font-weight="bold">PF-01</text>
-                {% else %}
-                    <!-- Station Title Footer (DOWN Line) -->
-                    <text x="{{ s.x }}" y="{{ s.box_down_y|add:38 }}" text-anchor="middle"
-                          fill="#ffd700" font-size="11" font-family="'Outfit', sans-serif" font-weight="600" letter-spacing="0.5">{{ s.label }}</text>
-                    <!-- Platform 02 (DOWN) -->
-                    <rect x="{{ s.box_x }}" y="{{ s.box_down_y }}" width="{{ s.width }}" height="{{ s.height }}"
-                          fill="#00224d" stroke="#ffd700" stroke-width="2.5" rx="4" filter="url(#glow)"/>
-                    <text x="{{ s.x }}" y="{{ s.down_y|add:1 }}" text-anchor="middle" dominant-baseline="middle"
-                          fill="white" font-size="9.5" font-family="'Outfit', sans-serif" font-weight="bold">PF-02</text>
+                          stroke="#ffd700" stroke-width="3.5" stroke-linecap="round"/>
+                    <circle cx="{{ co.x_left }}" cy="{{ down_y }}" r="4.5" fill="#444444"/>
+                    <circle cx="{{ co.x_right }}" cy="{{ up_y }}" r="4.5" fill="#444444"/>
                 {% endif %}
             </g>
         {% endfor %}
+        
         <!-- ── WAYSIDE SIGNALS ── -->
         {% for sig in signals %}
             <g id="signal-group-{{ sig.signal_id }}">
                 <!-- Signal Post -->
-                <line x1="{{ sig.x }}" y1="{% if sig.line == 'up' %}{{ sig.y|add:-16 }}{% else %}{{ sig.y|add:-10 }}{% endif %}" 
-                      x2="{{ sig.x }}" y2="{% if sig.line == 'up' %}{{ sig.y|add:10 }}{% else %}{{ sig.y|add:16 }}{% endif %}" 
-                      stroke="#555" stroke-width="2"/>
+                <line x1="{{ sig.x }}" y1="{% if sig.line == 'up' %}{{ sig.y|add:-14 }}{% else %}{{ sig.y|add:-8 }}{% endif %}" 
+                      x2="{{ sig.x }}" y2="{% if sig.line == 'up' %}{{ sig.y|add:8 }}{% else %}{{ sig.y|add:14 }}{% endif %}" 
+                      stroke="#000000" stroke-width="2"/>
                 <!-- Signal Head -->
                 <rect x="{{ sig.x|add:-5 }}" y="{% if sig.line == 'up' %}{{ sig.y|add:-18 }}{% else %}{{ sig.y|add:-13 }}{% endif %}" 
-                      width="10" height="26" fill="#111" stroke="#333" stroke-width="1" rx="2"/>
+                      width="10" height="26" fill="#222222" stroke="#000000" stroke-width="1.2" rx="2"/>
                 <!-- 3 Aspects (Green, Violet, Red) -->
-                <circle id="sig-{{ sig.line }}-{{ sig.num }}-green" cx="{{ sig.x }}" cy="{% if sig.line == 'up' %}{{ sig.y|add:-13 }}{% else %}{{ sig.y|add:-8 }}{% endif %}" r="2.5" fill="#002208" filter="url(#glow)"/>
+                <circle id="sig-{{ sig.line }}-{{ sig.num }}-green" cx="{{ sig.x }}" cy="{% if sig.line == 'up' %}{{ sig.y|add:-13 }}{% else %}{{ sig.y|add:-8 }}{% endif %}" r="2.5" fill="#002208"/>
                 <circle id="sig-{{ sig.line }}-{{ sig.num }}-violet" cx="{{ sig.x }}" cy="{% if sig.line == 'up' %}{{ sig.y|add:-5 }}{% else %}{{ sig.y|add:0 }}{% endif %}" r="2.5" fill="#200030"/>
                 <circle id="sig-{{ sig.line }}-{{ sig.num }}-red" cx="{{ sig.x }}" cy="{% if sig.line == 'up' %}{{ sig.y|add:3 }}{% else %}{{ sig.y|add:8 }}{% endif %}" r="2.5" fill="#330000"/>
                 <!-- Label -->
-                <text x="{{ sig.x }}" y="{% if sig.line == 'up' %}{{ sig.y|add:-23 }}{% else %}{{ sig.y|add:23 }}{% endif %}" text-anchor="middle"
-                      fill="#8a90a6" font-size="8" font-family="'Share Tech Mono', monospace">{{ sig.signal_id }}</text>
+                <text id="sig-label-{{ sig.signal_id }}" x="{{ sig.x }}" y="{% if sig.line == 'up' %}{{ sig.y|add:-23 }}{% else %}{{ sig.y|add:23 }}{% endif %}" text-anchor="middle"
+                      fill="#000000" font-size="8.5" font-family="monospace" font-weight="bold">{{ sig.signal_id }}</text>
             </g>
         {% endfor %}
+        
         <!-- ── THE TRAIN ITSELF ── -->
         <g id="train-container">
             <!-- Train Body with Outer Glow -->
-            <rect id="train" x="0" y="0" width="38" height="15" rx="4"
-                  fill="#ffd700" stroke="#000" stroke-width="1.5" filter="url(#glow)"/>
+            <rect id="train" x="0" y="0" width="38" height="15" rx="3"
+                  fill="#ffd700" stroke="#000" stroke-width="1.5"/>
             <!-- Train Window / Headlights -->
             <rect id="train-glass" x="30" y="2" width="6" height="11" rx="1" fill="#111"/>
             <!-- Train Label Text -->
             <text id="train-label" x="0" y="0" text-anchor="middle" dominant-baseline="middle"
-                  font-size="8.5" font-family="'Share Tech Mono', monospace" font-weight="bold" fill="#000">TR-0011</text>
+                  font-size="8.5" font-family="monospace" font-weight="bold" fill="#000">TR-0011</text>
         </g>
     </svg>
 </div>
-<div class="legend">
-    <div class="leg-title">Legend</div>
-    <div class="leg"><div class="leg-line" style="color:#00ff88; background:#00ff88"></div> UP Track</div>
-    <div class="leg"><div class="leg-line" style="color:#ffd700; background:#ffd700"></div> DOWN Track</div>
-    <div class="leg"><div class="leg-box" style="background:#00224d; border:2.5px solid #00ff88"></div> Platform</div>
-    <div class="leg"><div class="leg-line" style="color:#ff3344; background:#ff3344"></div> Crossover Track</div>
-    <div class="leg"><div class="leg-line" style="color:#ff8800; background:#ff8800"></div> Depot Siding</div>
-    <div class="leg"><div class="leg-dot" style="color:#00ff66; background:#00ff66"></div> Signal Clear (Green)</div>
-    <div class="leg"><div class="leg-dot" style="color:#df40ff; background:#df40ff"></div> Crossover Caution (Violet)</div>
-    <div class="leg"><div class="leg-dot" style="color:#ff3344; background:#ff3344"></div> Block Occupied (Red)</div>
+
+<!-- Coordinates JSON Display Box -->
+<div style="display: flex; gap: 20px; align-items: flex-start; margin-bottom: 12px;">
+    <div style="background: rgba(13, 13, 29, 0.75); border: 1px solid var(--border-color); border-radius: 4px; padding: 10px; width: 220px; box-shadow: inset 0 0 5px rgba(0,0,0,0.1);">
+        <pre id="coord-json" style="margin: 0; font-family: 'Share Tech Mono', monospace; font-size: 12px; color: var(--text-main); line-height: 1.4;">{
+  "x1": 768,
+  "y1": 135,
+  "x2": 822,
+  "y2": 135
+}</pre>
+    </div>
+    
+    <div class="legend" style="flex: 1; margin-bottom: 0;">
+        <div class="leg-title">Legend</div>
+        <div class="leg"><div class="leg-line" style="background:#00ff88"></div> UP Track</div>
+        <div class="leg"><div class="leg-line" style="background:#ffd700"></div> DOWN Track</div>
+        <div class="leg"><div class="leg-box" style="background:#d3d3d3; border:1.5px solid #000"></div> Platform Box</div>
+        <div class="leg"><div class="leg-line" style="background:#ffd700; height: 3px;"></div> Crossover (Turnout)</div>
+        <div class="leg"><div class="leg-dot" style="background:#00ff66"></div> Signal Clear (Green)</div>
+        <div class="leg"><div class="leg-dot" style="background:#df40ff"></div> Crossover Caution (Violet)</div>
+        <div class="leg"><div class="leg-dot" style="background:#ff3344"></div> Block Occupied (Red)</div>
+    </div>
 </div>
+
+<!-- Alarms Table Section -->
+<div class="table-section-title">Alarms</div>
+<table class="scada-table">
+    <thead>
+        <tr>
+            <th style="width: 10%; color: #ff3344;">Severity</th>
+            <th style="width: 15%;">Type</th>
+            <th style="width: 15%;">Source</th>
+            <th style="width: 50%;">Message</th>
+            <th style="width: 10%;">State</th>
+        </tr>
+    </thead>
+    <tbody id="alarms-table-body">
+        <tr>
+            <td style="color: #ff3344; font-weight: bold;">MAJOR</td>
+            <td>Route</td>
+            <td>R16</td>
+            <td style="font-weight: bold; color: #ff3344;">Track circuit AX16 occupied by T2.</td>
+            <td style="font-weight: bold;">ACTIVE</td>
+        </tr>
+    </tbody>
+</table>
+
+<!-- Events Table Section -->
+<div class="table-section-title">Events</div>
+<table class="scada-table">
+    <thead>
+        <tr>
+            <th style="width: 15%;">Timestamp</th>
+            <th style="width: 20%;">Event Type</th>
+            <th style="width: 15%;">Source</th>
+            <th style="width: 50%;">Details</th>
+        </tr>
+    </thead>
+    <tbody id="events-table-body">
+        <!-- Will be populated dynamically -->
+    </tbody>
+</table>
+
 <script>
 // ── Core data passed from Django ────────────────────────────────────
 const stations   = {{ stations_json|safe }};
@@ -378,6 +485,7 @@ const networkData = {{ network_json|safe }};
 // State variables for frontend render loop
 let running = true;
 let prevX = null;
+
 // Populate static track blocks inside the SVG
 function drawTrackSegments() {
     const upGroup = document.getElementById('up-track-segments');
@@ -393,15 +501,17 @@ function drawTrackSegments() {
         }
     });
 }
+
 function createTrackLine(group, id, x1, x2, y, defaultColor) {
     const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
     line.setAttribute('x1', x1); line.setAttribute('y1', y);
     line.setAttribute('x2', x2); line.setAttribute('y2', y);
     line.setAttribute('stroke', defaultColor);
-    line.setAttribute('stroke-width', '4');
+    line.setAttribute('stroke-width', '3.5');
     line.setAttribute('id', id);
     group.appendChild(line);
 }
+
 // Reset block visual highlights
 function resetAllBlocks() {
     networkData.track_circuits.forEach(tc => {
@@ -411,9 +521,9 @@ function resetAllBlocks() {
         }
     });
 }
+
 // Update Wayside Signal colors on the SVG
 function renderSignalAspect(sigData) {
-    // Determine DOM element IDs
     let greenId, violetId, redId;
     if (sigData.signal_type === 'station') {
         const stationNum = sigData.signal_id.split('-')[2];
@@ -431,10 +541,12 @@ function renderSignalAspect(sigData) {
     const violetEl = document.getElementById(violetId);
     const redEl = document.getElementById(redId);
     if (!greenEl || !violetEl || !redEl) return;
+    
     // Reset colors to dark state
     greenEl.setAttribute('fill', '#002208');
     violetEl.setAttribute('fill', '#200030');
     redEl.setAttribute('fill', '#330000');
+    
     // Illuminate the active aspect
     if (sigData.aspect === 'GREEN') {
         greenEl.setAttribute('fill', '#00ff66');
@@ -444,6 +556,7 @@ function renderSignalAspect(sigData) {
         redEl.setAttribute('fill', '#ff3344');
     }
 }
+
 // Update track circuit highlights on the SVG
 function renderTrackOccupancies(trackCircuits) {
     resetAllBlocks();
@@ -457,6 +570,7 @@ function renderTrackOccupancies(trackCircuits) {
         }
     });
 }
+
 // Main ajax polling loop
 function fetchSimulationTick() {
     if (!running) return;
@@ -467,21 +581,21 @@ function fetchSimulationTick() {
         })
         .then(data => {
             updateOCCDashboard(data);
-            // Fetch next frame in 30ms for 30 FPS updates
-            setTimeout(fetchSimulationTick, 30);
+            setTimeout(fetchSimulationTick, 100);
         })
         .catch(err => {
             console.error('Error fetching simulation tick:', err);
-            // Retry after 1 second if server returns error
             setTimeout(fetchSimulationTick, 1000);
         });
 }
+
 // Renders train coordinate, telemetry values, and wayside elements
 function updateOCCDashboard(data) {
     const t = data.train;
     // 1. Move train box on the track
     const trainCont = document.getElementById('train-container');
     trainCont.setAttribute('transform', `translate(${t.x - 19}, ${t.y - 7.5})`);
+    
     // 2. Adjust headlights depending on travel heading
     const trainGlassEl = document.getElementById('train-glass');
     const trainLabelEl = document.getElementById('train-label');
@@ -498,27 +612,24 @@ function updateOCCDashboard(data) {
         }
     }
     prevX = t.x;
+    
     // 3. Update active block telemetry UI
-    const activeSeg = t.journey ? t.journey[t.seg_index] : null;
-    const opStatusText = document.getElementById('op-status');
     const blockHud = document.getElementById('hud-block');
     const trainRect = document.getElementById('train');
     if (t.y === upY) {
         trainRect.setAttribute('fill', '#00ff88');
-        opStatusText.innerText = 'OPERATIONS ACTIVE / UP LINE';
         blockHud.innerText = 'UP LINE';
         blockHud.className = 'hud-value text-green';
     } else if (t.y === downY) {
         trainRect.setAttribute('fill', '#ffd700');
-        opStatusText.innerText = 'OPERATIONS ACTIVE / DOWN LINE';
         blockHud.innerText = 'DOWN LINE';
         blockHud.className = 'hud-value text-yellow';
     } else {
         trainRect.setAttribute('fill', '#df40ff');
-        opStatusText.innerText = 'OPERATIONS ACTIVE / CROSSING OVER';
         blockHud.innerText = 'CROSSOVER';
         blockHud.className = 'hud-value text-violet';
     }
+    
     // 4. Update HUD widgets
     document.getElementById('hud-speed').innerText = (t.speed * 3.6).toFixed(1);
     document.getElementById('hud-acc').innerText = (t.acc >= 0 ? '+' : '') + t.acc.toFixed(2);
@@ -526,11 +637,12 @@ function updateOCCDashboard(data) {
                                                     t.acc < 0 ? "hud-value text-red" : "hud-value";
     
     document.getElementById('hud-dwell').innerText = t.state === 'DWELLING' ? Math.ceil(t.dwell_timer) : '-';
+    
     // 5. Update wayside elements (Signals & Track Circuits)
     renderTrackOccupancies(data.track_circuits);
     data.signals.forEach(sig => renderSignalAspect(sig));
+    
     // 6. Update HUD Signal display aspect
-    // Find the next signal ahead of the train
     let signalAhead = null;
     if (t.y === upY) {
         signalAhead = data.signals.filter(s => s.line === 'up' && s.x > t.x).sort((a,b) => a.x - b.x)[0];
@@ -546,30 +658,494 @@ function updateOCCDashboard(data) {
         document.getElementById('hud-signal').innerText = 'GREEN';
         document.getElementById('hud-signal').className = 'hud-value text-green';
     }
+
+    // 7. Update Clock (dynamic increment)
+    const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    document.getElementById('sim-clock').innerText = 'Clock ' + timeStr.split(' ')[0];
+
+    // 8. Update Events table
+    const eventsBody = document.getElementById('events-table-body');
+    if (eventsBody && data.event_logs) {
+        eventsBody.innerHTML = '';
+        data.event_logs.slice().reverse().forEach(log => {
+            const tr = document.createElement('tr');
+            
+            const tdTime = document.createElement('td');
+            tdTime.textContent = log.timestamp;
+            tr.appendChild(tdTime);
+            
+            const tdType = document.createElement('td');
+            tdType.textContent = log.type || 'INFO';
+            tr.appendChild(tdType);
+            
+            const tdSource = document.createElement('td');
+            tdSource.textContent = log.message.includes('Train') ? 'TR-0011' : (log.message.includes('Signal') ? 'SIGNAL' : 'SYSTEM');
+            tr.appendChild(tdSource);
+            
+            const tdDetails = document.createElement('td');
+            tdDetails.textContent = log.message;
+            tr.appendChild(tdDetails);
+            
+            eventsBody.appendChild(tr);
+        });
+    }
+
+    // 9. Update Alarms table
+    const alarmsBody = document.getElementById('alarms-table-body');
+    if (alarmsBody) {
+        let activeAlarmCount = 1;
+        let html = `
+        <tr>
+            <td style="color: #ff3344; font-weight: bold;">MAJOR</td>
+            <td>Route</td>
+            <td>R16</td>
+            <td style="font-weight: bold; color: #ff3344;">Track circuit AX16 occupied by T2.</td>
+            <td style="font-weight: bold;">ACTIVE</td>
+        </tr>`;
+        
+        data.track_circuits.forEach(tc => {
+            if (tc.is_occupied) {
+                activeAlarmCount++;
+                html += `
+                <tr>
+                    <td style="color: #ff3344; font-weight: bold;">MAJOR</td>
+                    <td>Occupancy</td>
+                    <td>${tc.tc_id}</td>
+                    <td style="font-weight: bold; color: #ff3344;">Track circuit ${tc.tc_id} occupied by TR-0011.</td>
+                    <td style="font-weight: bold;">ACTIVE</td>
+                </tr>`;
+            }
+        });
+        alarmsBody.innerHTML = html;
+        document.getElementById('alarm-count-badge').innerText = `${activeAlarmCount} Active Alarms`;
+    }
 }
+
 function toggleSim() {
     running = !running;
     const btn = document.getElementById('btn-pause');
-    const opStatusText = document.getElementById('op-status');
+    const opStatusText = document.getElementById('sim-running-status');
     if (running) {
-        btn.innerText = 'Pause Operations';
-        btn.classList.add('btn-primary');
-        opStatusText.innerText = 'OPERATIONS ACTIVE / RUNNING';
-        // Restart polling loop
+        btn.innerText = 'Pause';
+        opStatusText.innerText = 'RUNNING';
         fetchSimulationTick();
     } else {
-        btn.innerText = 'Resume Operations';
-        btn.classList.remove('btn-primary');
-        opStatusText.innerText = 'OPERATIONS PAUSED';
+        btn.innerText = 'Resume';
+        opStatusText.innerText = 'PAUSED';
     }
 }
+
+// ── Draw SCADA Annotations ──────────────────────────────────────────
+function drawSCADAAnnotations() {
+    const annotationsGroup = document.getElementById('scada-annotations');
+    annotationsGroup.innerHTML = '';
+    
+    // 1. Group stations by unique X coordinates to align platforms vertically
+    const uniqueXs = [...new Set(stations.map(s => s.x))].sort((a, b) => a - b);
+    
+    // Set route selection option tags
+    const routeSelect = document.getElementById('route-select');
+    const fromSelect = document.getElementById('from-select');
+    const toSelect = document.getElementById('to-select');
+    if (routeSelect && uniqueXs.length >= 2) {
+        routeSelect.innerHTML = `<option>R16 S13-S15</option>`;
+        fromSelect.innerHTML = '';
+        toSelect.innerHTML = '';
+        uniqueXs.forEach((x, i) => {
+            const stName = `S${i + 13}`;
+            fromSelect.innerHTML += `<option>${stName}</option>`;
+            toSelect.innerHTML += `<option>${stName}</option>`;
+        });
+    }
+    
+    uniqueXs.forEach((s_x, i) => {
+        const k = i + 1;
+        const st_w = 66;
+        const st_h = 24;
+        
+        // Station limit boundaries box
+        const limitBox = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        limitBox.setAttribute('x', s_x - 90);
+        limitBox.setAttribute('y', upY - 45);
+        limitBox.setAttribute('width', 180);
+        limitBox.setAttribute('height', (downY - upY) + 90);
+        limitBox.setAttribute('fill', '#4e4e4e');
+        limitBox.setAttribute('stroke', '#ffffff');
+        limitBox.setAttribute('stroke-width', '1.5');
+        limitBox.setAttribute('rx', '4');
+        annotationsGroup.appendChild(limitBox);
+        
+        // UP platform block
+        const upPlat = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        upPlat.setAttribute('x', s_x - st_w / 2);
+        upPlat.setAttribute('y', upY - st_h / 2);
+        upPlat.setAttribute('width', st_w);
+        upPlat.setAttribute('height', st_h);
+        upPlat.setAttribute('fill', '#d3d3d3');
+        upPlat.setAttribute('stroke', '#000000');
+        upPlat.setAttribute('stroke-width', '1.5');
+        upPlat.setAttribute('rx', '2');
+        annotationsGroup.appendChild(upPlat);
+        
+        const pe1Text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        pe1Text.setAttribute('x', s_x);
+        pe1Text.setAttribute('y', upY - 2);
+        pe1Text.setAttribute('text-anchor', 'middle');
+        pe1Text.setAttribute('fill', '#000000');
+        pe1Text.setAttribute('font-size', '8.5');
+        pe1Text.setAttribute('font-family', "'Outfit', sans-serif");
+        pe1Text.setAttribute('font-weight', 'bold');
+        pe1Text.textContent = 'PE1';
+        annotationsGroup.appendChild(pe1Text);
+        
+        if (k % 2 === 1) {
+            const spkText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            spkText.setAttribute('x', s_x);
+            spkText.setAttribute('y', upY + 8);
+            spkText.setAttribute('text-anchor', 'middle');
+            spkText.setAttribute('fill', '#000000');
+            spkText.setAttribute('font-size', '7.5');
+            spkText.setAttribute('font-family', "'Outfit', sans-serif");
+            spkText.textContent = `SPK${k}`;
+            annotationsGroup.appendChild(spkText);
+        }
+        
+        // DOWN platform block
+        const dnPlat = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        dnPlat.setAttribute('x', s_x - st_w / 2);
+        dnPlat.setAttribute('y', downY - st_h / 2);
+        dnPlat.setAttribute('width', st_w);
+        dnPlat.setAttribute('height', st_h);
+        dnPlat.setAttribute('fill', '#d3d3d3');
+        dnPlat.setAttribute('stroke', '#000000');
+        dnPlat.setAttribute('stroke-width', '1.5');
+        dnPlat.setAttribute('rx', '2');
+        annotationsGroup.appendChild(dnPlat);
+        
+        const pf2Text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        pf2Text.setAttribute('x', s_x);
+        pf2Text.setAttribute('y', downY - 2);
+        pf2Text.setAttribute('text-anchor', 'middle');
+        pf2Text.setAttribute('fill', '#000000');
+        pf2Text.setAttribute('font-size', '8.5');
+        pf2Text.setAttribute('font-family', "'Outfit', sans-serif");
+        pf2Text.setAttribute('font-weight', 'bold');
+        pf2Text.textContent = 'PF2';
+        annotationsGroup.appendChild(pf2Text);
+        
+        const bottomLabel = (k % 2 === 1) ? `SPK${k+1}` : `STN${k}`;
+        const bottomText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        bottomText.setAttribute('x', s_x);
+        bottomText.setAttribute('y', downY + 8);
+        bottomText.setAttribute('text-anchor', 'middle');
+        bottomText.setAttribute('fill', '#000000');
+        bottomText.setAttribute('font-size', '7.5');
+        bottomText.setAttribute('font-family', "'Outfit', sans-serif");
+        bottomText.textContent = bottomLabel;
+        annotationsGroup.appendChild(bottomText);
+        
+        // Station Title Label above top platform
+        const titleText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        titleText.setAttribute('x', s_x);
+        titleText.setAttribute('y', upY - st_h/2 - 12);
+        titleText.setAttribute('text-anchor', 'middle');
+        titleText.setAttribute('fill', '#ffffff');
+        titleText.setAttribute('font-size', '10.5');
+        titleText.setAttribute('font-family', "'Outfit', sans-serif");
+        titleText.setAttribute('font-weight', 'bold');
+        titleText.textContent = `Station ${k}`;
+        annotationsGroup.appendChild(titleText);
+        
+        // ESP top-left and top-right labels
+        const espTL = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        espTL.setAttribute('x', s_x - st_w / 2 - 12);
+        espTL.setAttribute('y', upY - st_h / 2 - 12);
+        espTL.setAttribute('fill', '#c0c0c0');
+        espTL.setAttribute('font-size', '8');
+        espTL.setAttribute('font-family', "monospace");
+        espTL.setAttribute('font-weight', 'bold');
+        espTL.textContent = `ESP${4*k - 3}`;
+        annotationsGroup.appendChild(espTL);
+        
+        const espTR = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        espTR.setAttribute('x', s_x + st_w / 2 - 12);
+        espTR.setAttribute('y', upY - st_h / 2 - 12);
+        espTR.setAttribute('fill', '#c0c0c0');
+        espTR.setAttribute('font-size', '8');
+        espTR.setAttribute('font-family', "monospace");
+        espTR.setAttribute('font-weight', 'bold');
+        espTR.textContent = `ESP${4*k - 2}`;
+        annotationsGroup.appendChild(espTR);
+        
+        // ESP bottom-right label
+        const espBR = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        espBR.setAttribute('x', s_x + st_w / 2 - 12);
+        espBR.setAttribute('y', downY + st_h / 2 + 18);
+        espBR.setAttribute('fill', '#c0c0c0');
+        espBR.setAttribute('font-size', '8');
+        espBR.setAttribute('font-family', "monospace");
+        espBR.setAttribute('font-weight', 'bold');
+        espBR.textContent = `ESP${4*k}`;
+        annotationsGroup.appendChild(espBR);
+        
+        // ESP bottom-left label (only for even stations)
+        if (k % 2 === 0) {
+            const espBL = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            espBL.setAttribute('x', s_x - st_w / 2 - 12);
+            espBL.setAttribute('y', downY + st_h / 2 + 18);
+            espBL.setAttribute('fill', '#c0c0c0');
+            espBL.setAttribute('font-size', '8');
+            espBL.setAttribute('font-family', "monospace");
+            espBL.setAttribute('font-weight', 'bold');
+            espBL.textContent = `ESP${4*k - 1}`;
+            annotationsGroup.appendChild(espBL);
+        }
+        
+        // Track boundaries & axle counter dots
+        const leftLimitX = s_x - 90;
+        const rightLimitX = s_x + 90;
+        
+        function drawDotAndA(cx, cy, alignRight) {
+            const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            dot.setAttribute('cx', cx);
+            dot.setAttribute('cy', cy);
+            dot.setAttribute('r', '3.5');
+            dot.setAttribute('fill', '#000000');
+            annotationsGroup.appendChild(dot);
+            
+            const letterA = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            letterA.setAttribute('x', alignRight ? cx + 6 : cx - 12);
+            letterA.setAttribute('y', cy + 3);
+            letterA.setAttribute('fill', '#000000');
+            letterA.setAttribute('font-size', '9');
+            letterA.setAttribute('font-weight', 'bold');
+            letterA.textContent = 'A';
+            annotationsGroup.appendChild(letterA);
+        }
+        
+        drawDotAndA(leftLimitX, upY, false);
+        drawDotAndA(leftLimitX, downY, false);
+        drawDotAndA(rightLimitX, upY, true);
+        drawDotAndA(rightLimitX, downY, true);
+        
+        // Axle Counter Labels
+        const tlAXCVal = [61, 54, 63, 47][(k - 1) % 4];
+        const axcTL = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        axcTL.setAttribute('x', leftLimitX - 10);
+        axcTL.setAttribute('y', upY - 8);
+        axcTL.setAttribute('fill', '#000000');
+        axcTL.setAttribute('font-size', '8');
+        axcTL.setAttribute('font-family', "sans-serif");
+        axcTL.setAttribute('font-weight', 'bold');
+        axcTL.textContent = `AXC${tlAXCVal}`;
+        annotationsGroup.appendChild(axcTL);
+        
+        const trAXCVal = [23, 87, 40, 48][(k - 1) % 4];
+        const axcTR = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        axcTR.setAttribute('x', rightLimitX - 15);
+        axcTR.setAttribute('y', upY - 8);
+        axcTR.setAttribute('fill', '#000000');
+        axcTR.setAttribute('font-size', '8');
+        axcTR.setAttribute('font-family', "sans-serif");
+        axcTR.setAttribute('font-weight', 'bold');
+        axcTR.textContent = `AXC${trAXCVal}`;
+        annotationsGroup.appendChild(axcTR);
+        
+        const axTop = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        axTop.setAttribute('x', rightLimitX + 15);
+        axTop.setAttribute('y', upY - 8);
+        axTop.setAttribute('fill', '#333333');
+        axTop.setAttribute('font-size', '7.5');
+        axTop.textContent = `AX${2*k + 15}`;
+        annotationsGroup.appendChild(axTop);
+        
+        const brAXCVal = [36, 80, 42, 48][(k - 1) % 4];
+        const axcBR = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        axcBR.setAttribute('x', rightLimitX - 15);
+        axcBR.setAttribute('y', downY + 14);
+        axcBR.setAttribute('fill', '#000000');
+        axcBR.setAttribute('font-size', '8');
+        axcBR.setAttribute('font-family', "sans-serif");
+        axcBR.setAttribute('font-weight', 'bold');
+        axcBR.textContent = `AXC${brAXCVal}`;
+        annotationsGroup.appendChild(axcBR);
+        
+        const axBot = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        axBot.setAttribute('x', rightLimitX + 15);
+        axBot.setAttribute('y', downY + 14);
+        axBot.setAttribute('fill', '#333333');
+        axBot.setAttribute('font-size', '7.5');
+        axBot.textContent = `AX${2*k + 16}`;
+        annotationsGroup.appendChild(axBot);
+    });
+
+    // 2. Draw bi-color point boxes next to crossovers
+    crossovers.forEach(co => {
+        const idx = co.index;
+        const mid_x = co.mid_x;
+        
+        function drawPointBox(x, y, label) {
+            const pGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            
+            // Black segment
+            const rBlack = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            rBlack.setAttribute('x', x);
+            rBlack.setAttribute('y', y);
+            rBlack.setAttribute('width', '24');
+            rBlack.setAttribute('height', '14');
+            rBlack.setAttribute('fill', '#000000');
+            rBlack.setAttribute('stroke', '#666666');
+            rBlack.setAttribute('stroke-width', '1');
+            pGroup.appendChild(rBlack);
+            
+            const tP = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            tP.setAttribute('x', x + 12);
+            tP.setAttribute('y', y + 10);
+            tP.setAttribute('text-anchor', 'middle');
+            tP.setAttribute('fill', '#00ff88');
+            tP.setAttribute('font-size', '8');
+            tP.setAttribute('font-family', "monospace");
+            tP.setAttribute('font-weight', 'bold');
+            tP.textContent = label;
+            pGroup.appendChild(tP);
+            
+            // Green segment
+            const rGreen = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            rGreen.setAttribute('x', x + 24);
+            rGreen.setAttribute('y', y);
+            rGreen.setAttribute('width', '14');
+            rGreen.setAttribute('height', '14');
+            rGreen.setAttribute('fill', '#00ff88');
+            rGreen.setAttribute('stroke', '#666666');
+            rGreen.setAttribute('stroke-width', '1');
+            pGroup.appendChild(rGreen);
+            
+            const tN = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            tN.setAttribute('x', x + 31);
+            tN.setAttribute('y', y + 10);
+            tN.setAttribute('text-anchor', 'middle');
+            tN.setAttribute('fill', '#000000');
+            tN.setAttribute('font-size', '8.5');
+            tN.setAttribute('font-family', "monospace");
+            tN.setAttribute('font-weight', 'bold');
+            tN.textContent = 'N';
+            pGroup.appendChild(tN);
+            
+            annotationsGroup.appendChild(pGroup);
+        }
+        
+        const top_y = upY - 24;
+        const bot_y = downY + 8;
+        
+        if (idx % 2 === 1) {
+            drawPointBox(mid_x - 40, top_y, `P${2*idx - 1}`);
+            drawPointBox(mid_x - 40, bot_y, `P${2*idx}`);
+            
+            const fmText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            fmText.setAttribute('x', mid_x + 5);
+            fmText.setAttribute('y', top_y + 10);
+            fmText.setAttribute('fill', '#333333');
+            fmText.setAttribute('font-size', '8');
+            fmText.setAttribute('font-weight', 'bold');
+            fmText.textContent = `FM${idx}`;
+            annotationsGroup.appendChild(fmText);
+            
+            const cpText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            cpText.setAttribute('x', mid_x + 5);
+            cpText.setAttribute('y', bot_y + 10);
+            cpText.setAttribute('fill', '#003366');
+            cpText.setAttribute('font-size', '8');
+            cpText.setAttribute('font-weight', 'bold');
+            cpText.textContent = `CP${idx}`;
+            annotationsGroup.appendChild(cpText);
+            
+            const esText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            esText.setAttribute('x', mid_x - 60);
+            esText.setAttribute('y', bot_y + 10);
+            esText.setAttribute('fill', '#333333');
+            esText.setAttribute('font-size', '8');
+            esText.setAttribute('font-weight', 'bold');
+            esText.textContent = 'ES';
+            annotationsGroup.appendChild(esText);
+        } else {
+            drawPointBox(mid_x - 55, top_y, `P${2*idx - 1}`);
+            drawPointBox(mid_x + 5, top_y, `P${2*idx + 1}`);
+            drawPointBox(mid_x - 55, bot_y, `P${2*idx}`);
+            drawPointBox(mid_x + 5, bot_y, `P${2*idx + 2}`);
+            
+            const fmText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            fmText.setAttribute('x', mid_x - 15);
+            fmText.setAttribute('y', top_y + 10);
+            fmText.setAttribute('fill', '#333333');
+            fmText.setAttribute('font-size', '8');
+            fmText.setAttribute('font-weight', 'bold');
+            fmText.textContent = `FM${idx}`;
+            annotationsGroup.appendChild(fmText);
+            
+            const cpText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            cpText.setAttribute('x', mid_x - 15);
+            cpText.setAttribute('y', bot_y + 10);
+            cpText.setAttribute('fill', '#003366');
+            cpText.setAttribute('font-size', '8');
+            cpText.setAttribute('font-weight', 'bold');
+            cpText.textContent = `CP${idx}`;
+            annotationsGroup.appendChild(cpText);
+            
+            const esText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            esText.setAttribute('x', mid_x - 75);
+            esText.setAttribute('y', bot_y + 10);
+            esText.setAttribute('fill', '#333333');
+            esText.setAttribute('font-size', '8');
+            esText.setAttribute('font-weight', 'bold');
+            esText.textContent = 'ES';
+            annotationsGroup.appendChild(esText);
+        }
+    });
+
+    // 3. Rename Signal Labels dynamically to S2, S3, etc.
+    let upSigCount = 0;
+    let dnSigCount = 0;
+    const dnLabels = ["S3", "S4", "S7", "S8", "S11"];
+    networkData.signals.forEach(sig => {
+        const el = document.getElementById(`sig-label-${sig.signal_id}`);
+        if (el) {
+            if (sig.line === 'up') {
+                upSigCount++;
+                el.textContent = `S${upSigCount * 4 - 2}`;
+            } else {
+                dnSigCount++;
+                el.textContent = dnLabels[(dnSigCount - 1) % dnLabels.length] || `S${dnSigCount * 2 + 1}`;
+            }
+        }
+    });
+}
+
+// Coordinate Display Handler
+const svgEl = document.getElementById('track-svg');
+if (svgEl) {
+    svgEl.addEventListener('click', function(event) {
+        const rect = svgEl.getBoundingClientRect();
+        const viewBox = svgEl.viewBox.baseVal;
+        const x = Math.round((event.clientX - rect.left) / rect.width * viewBox.width);
+        const y = Math.round((event.clientY - rect.top) / rect.height * viewBox.height);
+        
+        const coordJson = {
+            "x1": x - 27,
+            "y1": y,
+            "x2": x + 27,
+            "y2": y
+        };
+        document.getElementById('coord-json').innerText = JSON.stringify(coordJson, null, 2);
+    });
+}
+
 // Initial draw sequence
 drawTrackSegments();
+drawSCADAAnnotations();
 resetAllBlocks();
+
 // Kick off polling requests
 fetchSimulationTick();
 </script>
 </body>
 </html>
-
-
