@@ -14,19 +14,83 @@ class TrackCircuit:
     Represents an isolated track segment (Block) that can detect 
     train occupancy. Occupancy drops to 0 when occupied, and picks up to 1 when clear.
     """
-    def __init__(self, tc_id, line, start_x, end_x):
-        self.tc_id = tc_id          # Unique identifier, e.g. "TC-UP-02"
+    def __init__(self, tc_id, line, start_x, end_x, idx=1):
+        self.tc_id = tc_id          # Unique identifier, e.g. "AX19"
         self.line = line            # "up", "down", or "crossover"
         self.start_x = start_x      # Left boundary coordinate
         self.end_x = end_x          # Right boundary coordinate
         self.is_occupied = False    # State: False (Pick-up / Clear), True (Drop / Occupied)
+        
+        # Extended fields for ATS Mimic & Commands
+        self.name = f"STN{idx}-STN{idx+1} UP" if line == 'up' else (f"STN{idx}-STN{idx+1} DOWN" if line == 'down' else f"XOV{idx} BLOCK")
+        self.section = f"Station {idx} - Station {idx+1}" if line != 'crossover' else f"Crossover {idx}"
+        self.type = "INTERSTATION" if line != 'crossover' else "CROSSOVER"
+        self.chainageStart = 48000 + int(start_x * 10)
+        self.chainageEnd = 48000 + int(end_x * 10)
+        self.startAxId = f"AXC{30 + idx*2 - 1}"
+        self.endAxId = f"AXC{30 + idx*2}"
+        self.lineDirection = "UP" if line == 'up' else ("DOWN" if line == 'down' else "CROSSOVER")
+        self.status = "CLEAR"
+        self.length = int(abs(end_x - start_x) * 10)
+        self.routeLocked = False
+        self.reservation = "NONE"
+        self.axleCounterReset = "NORMAL"
+        self.failureStatus = False
+        self.maintenanceBlock = False
+        self.blocked = False
+        self.noEntry = False
+        self.tsr = False
+        self.lowAdhesion = False
+        self.reducedBrakeRate = False
+        self.neutralZone = False
+        self.raDisabled = False
+        self.directionArrow = "UP" if line == 'up' else ("DOWN" if line == 'down' else "NONE")
+        self.cbiMapping = f"CBI-{tc_id}"
+        self.atpBlockRef = f"ATP-{tc_id}"
+        import datetime
+        self.lastStatusChange = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
+        self.x1 = int(start_x)
+        self.y1 = 120 if line == 'up' else (260 if line == 'down' else 190)
+        self.x2 = int(end_x)
+        self.y2 = 120 if line == 'up' else (260 if line == 'down' else 190)
+
     def to_dict(self):
         return {
             'tc_id': self.tc_id,
             'line': self.line,
             'start_x': self.start_x,
             'end_x': self.end_x,
-            'is_occupied': self.is_occupied
+            'is_occupied': self.is_occupied,
+            'name': self.name,
+            'section': self.section,
+            'type': self.type,
+            'chainageStart': self.chainageStart,
+            'chainageEnd': self.chainageEnd,
+            'startAxId': self.startAxId,
+            'endAxId': self.endAxId,
+            'lineDirection': self.lineDirection,
+            'status': self.status,
+            'length': self.length,
+            'routeLocked': self.routeLocked,
+            'reservation': self.reservation,
+            'axleCounterReset': self.axleCounterReset,
+            'failureStatus': self.failureStatus,
+            'maintenanceBlock': self.maintenanceBlock,
+            'blocked': self.blocked,
+            'noEntry': self.noEntry,
+            'tsr': self.tsr,
+            'lowAdhesion': self.lowAdhesion,
+            'reducedBrakeRate': self.reducedBrakeRate,
+            'neutralZone': self.neutralZone,
+            'raDisabled': self.raDisabled,
+            'directionArrow': self.directionArrow,
+            'cbiMapping': self.cbiMapping,
+            'atpBlockRef': self.atpBlockRef,
+            'lastStatusChange': self.lastStatusChange,
+            'x1': self.x1,
+            'y1': self.y1,
+            'x2': self.x2,
+            'y2': self.y2
         }
 class PointSwitch:
     """
@@ -133,7 +197,8 @@ class MetroNetwork:
         curr_x = self.margin_left
         for idx, length in enumerate(tc_lengths_up, 1):
             scaled_len = length * scale_up
-            self.track_circuits.append(TrackCircuit(f'TC-UP-{idx}', 'up', curr_x, curr_x + scaled_len))
+            tc_id = f"AX{2*idx + 15}"
+            self.track_circuits.append(TrackCircuit(tc_id, 'up', curr_x, curr_x + scaled_len, idx))
             curr_x += scaled_len
 
         # DOWN Line TCs
@@ -142,7 +207,8 @@ class MetroNetwork:
         curr_x = self.margin_left
         for idx, length in enumerate(tc_lengths_down, 1):
             scaled_len = length * scale_down
-            self.track_circuits.append(TrackCircuit(f'TC-DN-{idx}', 'down', curr_x, curr_x + scaled_len))
+            tc_id = f"AX{2*idx + 16}"
+            self.track_circuits.append(TrackCircuit(tc_id, 'down', curr_x, curr_x + scaled_len, idx))
             curr_x += scaled_len
 
         # 2. Instantiate Stations
@@ -191,23 +257,30 @@ class MetroNetwork:
             x_left = x_center - XOV_WIDTH // 2
             x_right = x_center + XOV_WIDTH // 2
             
-            point_id = f'P-{idx}'
-            tc_id = f'TC-XOV-{idx}'
-            pt = PointSwitch(
-                point_id=point_id,
-                tc_id=tc_id,
-                from_station=1,
-                to_station=2,
-                position_type='after',
-                x_left=x_left,
-                x_right=x_right,
-                y_up=self.up_y,
-                y_down=self.down_y
-            )
-            pt.crossover_type = co_type
-            self.points.append(pt)
+            tc_id = f'AX-XOV-{idx}'
             
-            self.track_circuits.append(TrackCircuit(tc_id, 'crossover', x_left, x_right))
+            # Instantiate PointSwitches for each label drawn on screen
+            if idx % 2 == 1:
+                labels = [f"P{2*idx - 1}", f"P{2*idx}"]
+            else:
+                labels = [f"P{2*idx - 1}", f"P{2*idx}", f"P{2*idx + 1}", f"P{2*idx + 2}"]
+                
+            for label in labels:
+                pt = PointSwitch(
+                    point_id=label,
+                    tc_id=tc_id,
+                    from_station=1,
+                    to_station=2,
+                    position_type='after',
+                    x_left=x_left,
+                    x_right=x_right,
+                    y_up=self.up_y,
+                    y_down=self.down_y
+                )
+                pt.crossover_type = co_type
+                self.points.append(pt)
+            
+            self.track_circuits.append(TrackCircuit(tc_id, 'crossover', x_left, x_right, idx))
 
         # 4. Instantiate Wayside Signal Posts
         for idx, sig in enumerate(signals_input, 1):
@@ -447,18 +520,31 @@ def layout_view(request):
     
     # Format crossovers to match frontend key expectations
     frontend_crossovers = []
-    for idx, pt in enumerate(network_data['points'], 1):
-        mid_x = (pt['x_left'] + pt['x_right']) // 2
-        mid_y = (pt['y_up'] + pt['y_down']) // 2
+    try:
+        layout_data = json.loads(layout.layout_data)
+    except Exception:
+        layout_data = {}
+    crossovers_input = layout_data.get('crossovers', [])
+    
+    total_width = SVG_WIDTH - MARGIN_LEFT - MARGIN_RIGHT
+    XOV_WIDTH = 50
+    for idx, co in enumerate(crossovers_input, 1):
+        pct = co['position']
+        co_type = co['type']
+        x_center = MARGIN_LEFT + (pct / 100.0) * total_width
+        x_left = x_center - XOV_WIDTH // 2
+        x_right = x_center + XOV_WIDTH // 2
+        mid_x = (x_left + x_right) // 2
+        mid_y = (UP_Y + DOWN_Y) // 2
         frontend_crossovers.append({
             'index':        idx,
-            'from_station': pt['from_station'],
-            'to_station':   pt['to_station'],
-            'position':     pt['position_type'],
-            'type':         pt['crossover_type'],
-            'x_left':       pt['x_left'],
-            'x_right':      pt['x_right'],
-            'width':        pt['x_right'] - pt['x_left'],
+            'from_station': 1,
+            'to_station':   2,
+            'position':     'after',
+            'type':         co_type,
+            'x_left':       x_left,
+            'x_right':      x_right,
+            'width':        XOV_WIDTH,
             'mid_x':        mid_x,
             'mid_y':        mid_y,
         })
@@ -668,13 +754,56 @@ class TrainSimEngine:
     def from_dict(cls, data, network_data, journey):
         engine = cls(network_data, journey)
         engine.train = Train.from_dict(data['train'], journey)
-        for tc_data, tc in zip(data['track_circuits'], engine.track_circuits):
-            tc.is_occupied = tc_data['is_occupied']
-        for p_data, p in zip(data['points'], engine.points):
-            p.current_state = p_data['current_state']
-            p.is_locked = p_data['is_locked']
-        for s_data, s in zip(data['signals'], engine.signals):
-            s.aspect = s_data['aspect']
+        
+        tc_dict = {tc_data['tc_id']: tc_data for tc_data in data.get('track_circuits', [])}
+        for tc in engine.track_circuits:
+            tc_data = tc_dict.get(tc.tc_id)
+            if tc_data:
+                tc.is_occupied = tc_data.get('is_occupied', False)
+                tc.routeLocked = tc_data.get('routeLocked', False)
+                tc.reservation = tc_data.get('reservation', 'NONE')
+                tc.axleCounterReset = tc_data.get('axleCounterReset', 'NORMAL')
+                tc.failureStatus = tc_data.get('failureStatus', False)
+                tc.maintenanceBlock = tc_data.get('maintenanceBlock', False)
+                tc.blocked = tc_data.get('blocked', False)
+                tc.noEntry = tc_data.get('noEntry', False)
+                tc.tsr = tc_data.get('tsr', False)
+                tc.lowAdhesion = tc_data.get('lowAdhesion', False)
+                tc.reducedBrakeRate = tc_data.get('reducedBrakeRate', False)
+                tc.neutralZone = tc_data.get('neutralZone', False)
+                tc.raDisabled = tc_data.get('raDisabled', False)
+                tc.status = tc_data.get('status', 'CLEAR')
+                tc.name = tc_data.get('name', tc.name)
+                tc.section = tc_data.get('section', tc.section)
+                tc.type = tc_data.get('type', tc.type)
+                tc.chainageStart = tc_data.get('chainageStart', tc.chainageStart)
+                tc.chainageEnd = tc_data.get('chainageEnd', tc.chainageEnd)
+                tc.startAxId = tc_data.get('startAxId', tc.startAxId)
+                tc.endAxId = tc_data.get('endAxId', tc.endAxId)
+                tc.lineDirection = tc_data.get('lineDirection', tc.lineDirection)
+                tc.length = tc_data.get('length', tc.length)
+                tc.directionArrow = tc_data.get('directionArrow', tc.directionArrow)
+                tc.cbiMapping = tc_data.get('cbiMapping', tc.cbiMapping)
+                tc.atpBlockRef = tc_data.get('atpBlockRef', tc.atpBlockRef)
+                tc.lastStatusChange = tc_data.get('lastStatusChange', tc.lastStatusChange)
+                tc.x1 = tc_data.get('x1', tc.x1)
+                tc.y1 = tc_data.get('y1', tc.y1)
+                tc.x2 = tc_data.get('x2', tc.x2)
+                tc.y2 = tc_data.get('y2', tc.y2)
+                
+        p_dict = {p_data['point_id']: p_data for p_data in data.get('points', [])}
+        for p in engine.points:
+            p_data = p_dict.get(p.point_id)
+            if p_data:
+                p.current_state = p_data.get('current_state', 'NORMAL')
+                p.is_locked = p_data.get('is_locked', False)
+                
+        sig_dict = {s_data['signal_id']: s_data for s_data in data.get('signals', [])}
+        for s in engine.signals:
+            s_data = sig_dict.get(s.signal_id)
+            if s_data:
+                s.aspect = s_data.get('aspect', 'GREEN')
+                
         engine.event_logs = data.get('event_logs', [])
         return engine
     def tick(self, dt):
@@ -897,16 +1026,27 @@ def simulation_tick(request):
     
     # Reconstruct crossovers to have index
     frontend_crossovers = []
-    for idx, pt in enumerate(network_data['points'], 1):
-        mid_x = (pt['x_left'] + pt['x_right']) // 2
-        mid_y = (pt['y_up'] + pt['y_down']) // 2
+    try:
+        layout_data = json.loads(layout.layout_data)
+    except Exception:
+        layout_data = {}
+    crossovers_input = layout_data.get('crossovers', [])
+    total_width = SVG_WIDTH - MARGIN_LEFT - MARGIN_RIGHT
+    XOV_WIDTH = 50
+    for idx, co in enumerate(crossovers_input, 1):
+        pct = co['position']
+        x_center = MARGIN_LEFT + (pct / 100.0) * total_width
+        x_left = x_center - XOV_WIDTH // 2
+        x_right = x_center + XOV_WIDTH // 2
+        mid_x = (x_left + x_right) // 2
+        mid_y = (UP_Y + DOWN_Y) // 2
         frontend_crossovers.append({
             'index':        idx,
-            'x_left':       pt['x_left'],
-            'x_right':      pt['x_right'],
+            'x_left':       x_left,
+            'x_right':      x_right,
             'mid_x':        mid_x,
             'mid_y':        mid_y,
-            'type':         pt['crossover_type']
+            'type':         co['type']
         })
         
     journey = build_journey_path(MARGIN_LEFT, MARGIN_RIGHT, SPACING, len(network_data['stations']), UP_Y, DOWN_Y, frontend_crossovers, SVG_WIDTH)
@@ -968,6 +1108,94 @@ def simulation_tick(request):
     from django.http import JsonResponse
     return JsonResponse(response_data)
 
+
+@login_required(login_url='login')
+def update_track(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+        except Exception:
+            return JsonResponse({'status': 'error', 'message': 'Invalid JSON'}, status=400)
+            
+        tc_id = data.get('tc_id')
+        command = data.get('command')
+        
+        sim_state = request.session.get('sim_state')
+        if sim_state:
+            for tc in sim_state.get('track_circuits', []):
+                if tc['tc_id'] == tc_id:
+                    import datetime
+                    tc['lastStatusChange'] = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
+                    
+                    if command == 'set_tsr':
+                        tc['tsr'] = True
+                    elif command == 'release_tsr':
+                        tc['tsr'] = False
+                    elif command == 'no_entry_on':
+                        tc['noEntry'] = True
+                    elif command == 'no_entry_off':
+                        tc['noEntry'] = False
+                    elif command == 'maint_block':
+                        tc['maintenanceBlock'] = True
+                    elif command == 'maint_release':
+                        tc['maintenanceBlock'] = False
+                    elif command == 'low_adhesion_on':
+                        tc['lowAdhesion'] = True
+                    elif command == 'low_adhesion_off':
+                        tc['lowAdhesion'] = False
+                    elif command == 'clear_locking':
+                        tc['routeLocked'] = False
+                        tc['reservation'] = 'NONE'
+                    elif command == 'route_set':
+                        tc['routeLocked'] = True
+                        tc['reservation'] = 'ROUTE'
+                        
+                    # Update overall status
+                    if tc['maintenanceBlock']:
+                        tc['status'] = 'MAINTENANCE'
+                    elif tc['is_occupied']:
+                        tc['status'] = 'OCCUPIED'
+                    elif tc['blocked']:
+                        tc['status'] = 'BLOCKED'
+                    elif tc['failureStatus']:
+                        tc['status'] = 'FAILED'
+                    else:
+                        tc['status'] = 'CLEAR'
+                    break
+            request.session['sim_state'] = sim_state
+            return JsonResponse({'status': 'ok'})
+    return JsonResponse({'status': 'error'}, status=400)
+
+
+@login_required(login_url='login')
+def update_point(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+        except Exception:
+            return JsonResponse({'status': 'error', 'message': 'Invalid JSON'}, status=400)
+            
+        point_id = data.get('point_id')
+        position = data.get('position')
+        
+        sim_state = request.session.get('sim_state')
+        if sim_state:
+            for p in sim_state.get('points', []):
+                if p['point_id'] == point_id:
+                    if not p.get('is_locked', False):
+                        p['current_state'] = position
+                        
+                        import datetime
+                        timestamp = datetime.datetime.now().strftime('%H:%M:%S')
+                        sim_state.setdefault('event_logs', []).append({
+                            'timestamp': timestamp,
+                            'message': f"Point Switch {point_id} set to {position}",
+                            'type': 'INFO'
+                        })
+                    break
+            request.session['sim_state'] = sim_state
+            return JsonResponse({'status': 'ok'})
+    return JsonResponse({'status': 'error'}, status=400)
 
 
 
