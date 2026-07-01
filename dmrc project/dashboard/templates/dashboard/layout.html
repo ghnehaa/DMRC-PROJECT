@@ -1,559 +1,211 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Delhi Metro Line 7 - ATS/CBI/ATP Operation Simulator</title>
-    <!-- Import Outfit Google Font -->
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg-color: #1a1a2e;
-            --panel-bg: rgba(13, 13, 29, 0.75);
-            --border-color: rgba(68, 136, 255, 0.2);
-            --text-main: white;
-            --text-muted: #444444;
-            --btn-bg: rgba(23, 23, 51, 0.75);
-            --accent-red: #ff3344;
-            --accent-green: #00ff88;
-            --accent-yellow: #ffd700;
+            height: 8px;
+            border-radius: 50%;
         }
-        body {
-            font-family: 'Outfit', sans-serif;
-            background: var(--bg-color);
+        
+        /* Properties Side Panel Drawer */
+        .properties-panel {
+            position: fixed;
+            top: 0;
+            right: -420px; /* Hidden by default */
+            width: 380px;
+            height: 100vh;
+            background: rgba(10, 10, 24, 0.94);
+            backdrop-filter: blur(20px);
+            border-left: 2px solid var(--border-color);
+            box-shadow: -15px 0 35px rgba(0,0,0,0.7);
+            z-index: 10001;
+            transition: right 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            flex-direction: column;
             color: var(--text-main);
-            padding: 15px;
-            margin: 0;
-            min-height: 100vh;
+            font-family: 'Outfit', sans-serif;
         }
-        /* Top Header Panel */
-        .header-container {
-            background: var(--panel-bg);
-            border: 1px solid var(--border-color);
-            padding: 8px 16px;
+        .properties-panel.open {
+            right: 0;
+        }
+        .panel-header {
+            padding: 20px;
+            border-bottom: 1.5px solid var(--border-color);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 10px;
+            background: rgba(20, 20, 45, 0.5);
         }
-        .header-left {
-            display: flex;
-            flex-direction: column;
-        }
-        .header-left h1 {
-            font-size: 20px;
-            font-weight: 800;
+        .panel-header h2 {
             margin: 0;
-            color: var(--text-main);
-            letter-spacing: -0.5px;
+            font-size: 16px;
+            font-weight: 800;
+            letter-spacing: 0.8px;
+            color: var(--accent-green);
+            text-transform: uppercase;
         }
-        .header-left span {
-            font-family: 'Share Tech Mono', monospace;
-            font-size: 13px;
-            color: var(--text-muted);
-        }
-        .header-right {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
-        .status-box {
-            background: var(--btn-bg);
-            border: 1px solid var(--border-color);
-            color: var(--text-main);
-            padding: 4px 12px;
-            font-family: 'Share Tech Mono', monospace;
-            font-size: 13px;
-            font-weight: bold;
-            text-align: center;
-            min-width: 80px;
-        }
-        /* Control Ribbons */
-        .control-ribbon {
-            background: var(--panel-bg);
-            border: 1px solid var(--border-color);
-            padding: 6px 12px;
-            display: flex;
-            gap: 12px;
-            align-items: center;
-            margin-bottom: 8px;
-            flex-wrap: wrap;
-            font-size: 13px;
-        }
-        .control-ribbon label {
-            font-weight: bold;
-            color: var(--text-main);
-        }
-        .control-ribbon select {
-            padding: 2px 6px;
-            font-size: 12px;
-            border: 1px solid var(--border-color);
-            background: #ffffff;
-            font-family: 'Outfit', sans-serif;
-        }
-        .btn-action {
-            background: var(--btn-bg);
-            color: var(--text-main);
-            border: 1px solid var(--border-color);
-            padding: 3px 10px;
-            font-size: 12px;
-            font-weight: 600;
+        .panel-close-btn {
+            background: none;
+            border: none;
+            color: #8888aa;
+            font-size: 32px;
             cursor: pointer;
-            border-radius: 2px;
-            transition: all 0.15s ease;
+            line-height: 0.5;
+            transition: color 0.15s ease;
         }
-        .btn-action:hover {
-            background: #c5c5c5;
+        .panel-close-btn:hover {
+            color: var(--accent-red);
         }
-        .btn-action.btn-green {
-            background: #a3e2a3;
-            color: #004d00;
-            border-color: #5bb35b;
+        .panel-body {
+            padding: 20px;
+            overflow-y: auto;
+            flex: 1;
         }
-        .btn-action.btn-green:hover {
-            background: #90d390;
-        }
-        /* HUD Indicators Panel */
-        .hud-panel {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 12px;
-            margin-bottom: 12px;
-        }
-        .hud-card {
-            background: var(--panel-bg);
-            border: 1px solid var(--border-color);
+        .props-table-container {
+            max-height: 60vh;
+            overflow-y: auto;
+            border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 4px;
-            padding: 10px 14px;
-            box-shadow: inset 0 0 4px rgba(0,0,0,0.05);
+            background: rgba(0, 0, 0, 0.2);
+            margin-bottom: 20px;
         }
-        .hud-label {
-            font-size: 11px;
-            text-transform: uppercase;
-            font-weight: bold;
-            color: var(--text-muted);
-            margin-bottom: 4px;
-        }
-        .hud-value {
-            font-family: 'Share Tech Mono', monospace;
-            font-size: 24px;
-            font-weight: bold;
-            color: var(--text-main);
-        }
-        .text-green { color: #006622; }
-        .text-yellow { color: #886600; }
-        .text-red { color: var(--accent-red); }
-        .text-violet { color: #800080; }
-        
-        /* SVG Simulator Wrapper */
-        .canvas-container {
-            background: rgba(13, 13, 29, 0.75);
-            border: 2px solid var(--border-color);
-            overflow: hidden;
-            margin-bottom: 12px;
-            position: relative;
-        }
-        svg {
-            display: block;
-            width: 100%;
-            height: auto;
-            background: #b0b0b0;
-        }
-        
-        /* Table Layouts */
-        .table-section-title {
-            margin-top: 15px;
-            margin-bottom: 6px;
-            font-size: 14px;
-            font-weight: bold;
-            text-transform: uppercase;
-            color: var(--text-main);
-            border-bottom: 2px solid #555555;
-            padding-bottom: 3px;
-        }
-        .scada-table {
+        .props-table {
             width: 100%;
             border-collapse: collapse;
-            background: var(--panel-bg);
-            border: 1px solid var(--border-color);
-            font-size: 12px;
-            margin-bottom: 15px;
+            font-size: 12.5px;
         }
-        .scada-table th {
-            background: #c5c5c5;
-            border-bottom: 1px solid var(--border-color);
-            border-right: 1px solid var(--border-color);
-            padding: 5px 10px;
-            text-align: left;
-            font-weight: bold;
+        .props-table tr {
+            border-bottom: 1px solid rgba(255,255,255,0.06);
         }
-        .scada-table td {
-            padding: 5px 10px;
-            border-bottom: 1px solid #c0c0c0;
-            border-right: 1px solid var(--border-color);
-        }
-        .scada-table tr:last-child td {
+        .props-table tr:last-child {
             border-bottom: none;
         }
-        
-        .legend {
-            background: var(--panel-bg);
-            border: 1px solid var(--border-color);
-            padding: 8px 16px;
-            font-size: 12px;
-            color: var(--text-muted);
-            display: flex;
-            gap: 20px;
-            flex-wrap: wrap;
-            align-items: center;
-            margin-bottom: 12px;
+        .props-table td {
+            padding: 7px 12px;
         }
-        .leg-title {
+        .props-table td.key {
             font-weight: 600;
-            color: var(--text-main);
+            color: #8888aa;
+            width: 48%;
+            text-transform: capitalize;
+        }
+        .props-table td.val {
+            font-family: 'Share Tech Mono', monospace;
+            color: #ffffff;
+            text-align: right;
+        }
+        .panel-commands-section h3 {
+            margin-top: 10px;
+            margin-bottom: 12px;
+            font-size: 13px;
             text-transform: uppercase;
+            color: var(--accent-yellow);
+            border-bottom: 1.5px solid rgba(255,255,255,0.1);
+            padding-bottom: 4px;
+            letter-spacing: 0.5px;
         }
-        .leg {
-            display: flex;
-            align-items: center;
-            gap: 6px;
+        .commands-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
         }
-        .leg-line {
-            width: 25px;
-            height: 4px;
-            border-radius: 1px;
+        .cmd-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1.5px solid var(--border-color);
+            color: #e0e0f0;
+            padding: 8px 10px;
+            font-size: 11.5px;
+            font-weight: 600;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            text-align: center;
         }
-        .leg-box {
-            width: 12px;
-            height: 12px;
-            border-radius: 2px;
+        .cmd-btn:hover {
+            background: var(--accent-green);
+            color: #0d0d1d;
+            border-color: var(--accent-green);
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
         }
-        .leg-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
+        .cmd-btn.danger:hover {
+            background: var(--accent-red);
+            color: white;
+            border-color: var(--accent-red);
+            box-shadow: 0 0 10px rgba(255, 51, 68, 0.3);
+        }
+
+        /* Context Menu Styles */
+        .context-menu-item {
+            padding: 8px 14px;
+            font-size: 12px;
+            color: #d0d0e0;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.15s ease;
+        }
+        .context-menu-item:hover {
+            background: rgba(0, 255, 136, 0.15);
+            color: var(--accent-green);
         }
     </style>
 </head>
 <body>
-
-<div class="header-container">
-    <div class="header-left">
-        <h1>Delhi Metro Line 7 - ATS/CBI/ATP Operation Simulator</h1>
-        <span>Simulator ATS_CONTROLLER</span>
-    </div>
-    <div class="header-right">
-        <div class="status-box" id="sim-running-status">RUNNING</div>
-        <div class="status-box">MANUAL</div>
-        <div class="status-box" id="sim-clock">Clock 06:01</div>
-        <div class="status-box">CMD 0002</div>
-        <div class="status-box" style="color: #ff3344;" id="alarm-count-badge">1 Active Alarms</div>
-    </div>
-</div>
-
-<!-- Primary Route Control Ribbon -->
-<div class="control-ribbon">
-    <label>Route</label>
-    <select id="route-select">
-        <option>R16 S13-S15</option>
-    </select>
-    <label>From</label>
-    <select id="from-select">
-        <option>S13</option>
-    </select>
-    <label>To</label>
-    <select id="to-select">
-        <option>S15</option>
-    </select>
-    
-    <button class="btn-action">Set Signal Route</button>
-    <button class="btn-action">Set Selected</button>
-    <button class="btn-action">Cancel Selected</button>
-    <button class="btn-action">Emergency Release</button>
-    <button class="btn-action btn-green">TURNBACK</button>
-    <button onclick="toggleSim()" class="btn-action" id="btn-pause">Pause</button>
-    <button onclick="location.reload()" class="btn-action">Reset</button>
-    
-    <div style="margin-left: auto;">
-        <span style="font-family: 'Share Tech Mono', monospace; font-weight: bold; font-size: 13px;" id="op-status">RUNNING</span>
-    </div>
-</div>
-
-<!-- Secondary Actions Strip -->
-<div class="control-ribbon" style="background: #c5c5c5;">
-    <button class="btn-action" style="padding: 2px 8px;">🔍+</button>
-    <button class="btn-action" style="padding: 2px 8px;">🔍-</button>
-    <button class="btn-action" style="padding: 2px 8px;">[ 🗖 ]</button>
-    <button class="btn-action">Section</button>
-    <button class="btn-action">Station View</button>
-    <button class="btn-action">Hold</button>
-    <button class="btn-action">Release</button>
-    <button class="btn-action">Skip Stop</button>
-    <button class="btn-action">Turnback</button>
-    <button class="btn-action">Ack Alarms</button>
-</div>
-
-<!-- Telemetry HUD Dashboard -->
-<div class="hud-panel">
-    <div class="hud-card">
-        <div class="hud-label">Train Speed</div>
-        <div class="hud-value"><span id="hud-speed">0.0</span> km/h</div>
-    </div>
-    <div class="hud-card">
-        <div class="hud-label">Acceleration</div>
-        <div class="hud-value"><span id="hud-acc" class="text-green">+0.00</span> m/s²</div>
-    </div>
-    <div class="hud-card">
-        <div class="hud-label">Active Block</div>
-        <div class="hud-value" id="hud-block">UP LINE</div>
-    </div>
-    <div class="hud-card">
-        <div class="hud-label">Station Dwell</div>
-        <div class="hud-value"><span id="hud-dwell">-</span> sec</div>
-    </div>
-    <div class="hud-card">
-        <div class="hud-label">Signal Ahead</div>
-        <div class="hud-value" id="hud-signal" style="font-size: 20px;">GREEN</div>
-    </div>
-</div>
-
-<!-- Canvas Area -->
-<div class="canvas-container">
-    <svg id="track-svg" viewBox="0 0 {{ svg_width }} {{ svg_height }}" width="100%" height="400"
-         xmlns="http://www.w3.org/2000/svg">
-        
-        <!-- Glow Filter for active lights and tracks -->
-        <defs>
-            <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-                <feGaussianBlur stdDeviation="2" result="blur" />
-                <feComposite in="SourceGraphic" in2="blur" operator="over" />
-            </filter>
-        </defs>
-        
-        <text x="15" y="{{ up_y|add:-32 }}" fill="#003366" font-size="11" font-family="'Share Tech Mono', monospace" font-weight="bold" letter-spacing="1">▲ UP LINE (WEST TO EAST)</text>
-        <text x="15" y="{{ down_y|add:40 }}" fill="#003366" font-size="11" font-family="'Share Tech Mono', monospace" font-weight="bold" letter-spacing="1">▼ DOWN LINE (EAST TO WEST)</text>
-        
-        <!-- Enclosures & SCADA Station Elements Group -->
-        <g id="scada-annotations"></g>
-        
-        <!-- ── TRACK SEGMENTS (Dynamic blocks) ── -->
-        <g id="up-track-segments"></g>
-        <g id="down-track-segments"></g>
-        
-        <!-- ── DEPOTS ── -->
-        {% for dp in depots %}
-            <g id="depot-{{ forloop.counter }}">
-                <!-- Connecting turnout curve -->
-                <path d="M {{ dp.x1 }} {{ dp.y1 }} Q {{ dp.x1|add:10 }} {{ dp.y2 }} {{ dp.x2 }} {{ dp.y2 }}" 
-                      fill="none" stroke="#666666" stroke-width="2.5" stroke-dasharray="4,2"/>
-                <!-- Depot parking siding -->
-                <line x1="{{ dp.x2 }}" y1="{{ dp.y2 }}" x2="{{ dp.x2|add:65 }}" y2="{{ dp.y2 }}"
-                      stroke="#885500" stroke-width="3"/>
-                <!-- Depot shed box -->
-                <rect x="{{ dp.x2|add:2 }}" y="{{ dp.y2|add:-13 }}" width="66" height="26"
-                      fill="#e0e0e0" stroke="#777777" stroke-width="1.5" rx="3"/>
-                <text x="{{ dp.x2|add:35 }}" y="{{ dp.y2|add:4 }}" text-anchor="middle"
-                      fill="#000000" font-size="8" font-family="'Outfit', sans-serif" font-weight="bold">DEPOT ST{{ dp.near_station }}</text>
-            </g>
-        {% endfor %}
-        
-        <!-- ── CROSSOVERS (Turnouts) ── -->
-        {% for co in crossovers %}
-            <g id="crossover-{{ co.index }}">
-                <!-- Track overlays: wipes out main lines locally behind turnout switches -->
-                <rect x="{{ co.x_left }}" y="{{ up_y|add:-4 }}" width="{{ co.width }}" height="8" fill="#b0b0b0"/>
-                <rect x="{{ co.x_left }}" y="{{ down_y|add:-4 }}" width="{{ co.width }}" height="8" fill="#b0b0b0"/>
-                
-                <!-- Crossover Diagonal Line based on Turnout Type (No scissors) -->
-                {% if co.type == 'up_to_down' %}
-                    <line x1="{{ co.x_left }}" y1="{{ up_y }}" x2="{{ co.x_right }}" y2="{{ down_y }}" 
-                          stroke="#ffd700" stroke-width="3.5" stroke-linecap="round"/>
-                    <circle cx="{{ co.x_left }}" cy="{{ up_y }}" r="4.5" fill="#444444"/>
-                    <circle cx="{{ co.x_right }}" cy="{{ down_y }}" r="4.5" fill="#444444"/>
-                {% else %}
-                    <line x1="{{ co.x_left }}" y1="{{ down_y }}" x2="{{ co.x_right }}" y2="{{ up_y }}" 
-                          stroke="#ffd700" stroke-width="3.5" stroke-linecap="round"/>
-                    <circle cx="{{ co.x_left }}" cy="{{ down_y }}" r="4.5" fill="#444444"/>
-                    <circle cx="{{ co.x_right }}" cy="{{ up_y }}" r="4.5" fill="#444444"/>
-                {% endif %}
-            </g>
-        {% endfor %}
-        
-        <!-- ── WAYSIDE SIGNALS ── -->
-        {% for sig in signals %}
-            <g id="signal-group-{{ sig.signal_id }}">
-                <!-- Signal Post -->
-                <line x1="{{ sig.x }}" y1="{% if sig.line == 'up' %}{{ sig.y|add:-14 }}{% else %}{{ sig.y|add:-8 }}{% endif %}" 
-                      x2="{{ sig.x }}" y2="{% if sig.line == 'up' %}{{ sig.y|add:8 }}{% else %}{{ sig.y|add:14 }}{% endif %}" 
-                      stroke="#000000" stroke-width="2"/>
-                <!-- Signal Head -->
-                <rect x="{{ sig.x|add:-5 }}" y="{% if sig.line == 'up' %}{{ sig.y|add:-18 }}{% else %}{{ sig.y|add:-13 }}{% endif %}" 
-                      width="10" height="26" fill="#222222" stroke="#000000" stroke-width="1.2" rx="2"/>
-                <!-- 3 Aspects (Green, Violet, Red) -->
-                <circle id="sig-{{ sig.line }}-{{ sig.num }}-green" cx="{{ sig.x }}" cy="{% if sig.line == 'up' %}{{ sig.y|add:-13 }}{% else %}{{ sig.y|add:-8 }}{% endif %}" r="2.5" fill="#002208"/>
-                <circle id="sig-{{ sig.line }}-{{ sig.num }}-violet" cx="{{ sig.x }}" cy="{% if sig.line == 'up' %}{{ sig.y|add:-5 }}{% else %}{{ sig.y|add:0 }}{% endif %}" r="2.5" fill="#200030"/>
-                <circle id="sig-{{ sig.line }}-{{ sig.num }}-red" cx="{{ sig.x }}" cy="{% if sig.line == 'up' %}{{ sig.y|add:3 }}{% else %}{{ sig.y|add:8 }}{% endif %}" r="2.5" fill="#330000"/>
-                <!-- Label -->
-                <text id="sig-label-{{ sig.signal_id }}" x="{{ sig.x }}" y="{% if sig.line == 'up' %}{{ sig.y|add:-23 }}{% else %}{{ sig.y|add:23 }}{% endif %}" text-anchor="middle"
-                      fill="#000000" font-size="8.5" font-family="monospace" font-weight="bold">{{ sig.signal_id }}</text>
-            </g>
-        {% endfor %}
-        
-        <!-- ── THE TRAIN ITSELF ── -->
-        <g id="train-container">
-            <!-- Train Body with Outer Glow -->
-            <rect id="train" x="0" y="0" width="38" height="15" rx="3"
-                  fill="#ffd700" stroke="#000" stroke-width="1.5"/>
-            <!-- Train Window / Headlights -->
-            <rect id="train-glass" x="30" y="2" width="6" height="11" rx="1" fill="#111"/>
-            <!-- Train Label Text -->
-            <text id="train-label" x="0" y="0" text-anchor="middle" dominant-baseline="middle"
-                  font-size="8.5" font-family="monospace" font-weight="bold" fill="#000">TR-0011</text>
-        </g>
     </svg>
+</div>
+
+<!-- Floating Context Menu -->
+<div id="context-menu" style="display: none; position: absolute; z-index: 10000; background: rgba(13, 13, 29, 0.95); backdrop-filter: blur(10px); border: 1.5px solid var(--border-color); border-radius: 6px; box-shadow: 0 10px 25px rgba(0,0,0,0.65); padding: 6px 0; min-width: 160px; font-family: 'Outfit', sans-serif;"></div>
+
+<!-- Sidebar Properties Panel -->
+<div id="properties-panel" class="properties-panel">
+    <div class="panel-header">
+        <h2 id="panel-title">TRACK-CIRCUIT</h2>
+        <button onclick="closePropertiesPanel()" class="panel-close-btn">&times;</button>
+    </div>
+    <div class="panel-body">
+        <div class="props-table-container">
+            <table class="props-table">
+                <tbody id="panel-properties-list">
+                    <!-- Dynamic properties rows -->
+                </tbody>
+            </table>
+        </div>
+        <div class="panel-commands-section">
+            <h3>Commands</h3>
+            <div id="panel-commands-list" class="commands-grid">
+                <!-- Dynamic command buttons -->
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Coordinates JSON Display Box -->
 <div style="display: flex; gap: 20px; align-items: flex-start; margin-bottom: 12px;">
     <div style="background: rgba(13, 13, 29, 0.75); border: 1px solid var(--border-color); border-radius: 4px; padding: 10px; width: 220px; box-shadow: inset 0 0 5px rgba(0,0,0,0.1);">
-        <pre id="coord-json" style="margin: 0; font-family: 'Share Tech Mono', monospace; font-size: 12px; color: var(--text-main); line-height: 1.4;">{
-  "x1": 768,
-  "y1": 135,
-  "x2": 822,
-  "y2": 135
-}</pre>
-    </div>
-    
-    <div class="legend" style="flex: 1; margin-bottom: 0;">
-        <div class="leg-title">Legend</div>
-        <div class="leg"><div class="leg-line" style="background:#00ff88"></div> UP Track</div>
-        <div class="leg"><div class="leg-line" style="background:#ffd700"></div> DOWN Track</div>
-        <div class="leg"><div class="leg-box" style="background:#d3d3d3; border:1.5px solid #000"></div> Platform Box</div>
-        <div class="leg"><div class="leg-line" style="background:#ffd700; height: 3px;"></div> Crossover (Turnout)</div>
-        <div class="leg"><div class="leg-dot" style="background:#00ff66"></div> Signal Clear (Green)</div>
-        <div class="leg"><div class="leg-dot" style="background:#df40ff"></div> Crossover Caution (Violet)</div>
-        <div class="leg"><div class="leg-dot" style="background:#ff3344"></div> Block Occupied (Red)</div>
-    </div>
-</div>
-
-<!-- Alarms Table Section -->
-<div class="table-section-title">Alarms</div>
-<table class="scada-table">
-    <thead>
-        <tr>
-            <th style="width: 10%; color: #ff3344;">Severity</th>
-            <th style="width: 15%;">Type</th>
-            <th style="width: 15%;">Source</th>
-            <th style="width: 50%;">Message</th>
-            <th style="width: 10%;">State</th>
-        </tr>
-    </thead>
-    <tbody id="alarms-table-body">
-        <tr>
-            <td style="color: #ff3344; font-weight: bold;">MAJOR</td>
-            <td>Route</td>
-            <td>R16</td>
-            <td style="font-weight: bold; color: #ff3344;">Track circuit AX16 occupied by T2.</td>
-            <td style="font-weight: bold;">ACTIVE</td>
-        </tr>
-    </tbody>
-</table>
-
-<!-- Events Table Section -->
-<div class="table-section-title">Events</div>
-<table class="scada-table">
-    <thead>
-        <tr>
-            <th style="width: 15%;">Timestamp</th>
-            <th style="width: 20%;">Event Type</th>
-            <th style="width: 15%;">Source</th>
-            <th style="width: 50%;">Details</th>
-        </tr>
-    </thead>
-    <tbody id="events-table-body">
-        <!-- Will be populated dynamically -->
-    </tbody>
-</table>
-
-<script>
-// ── Core data passed from Django ────────────────────────────────────
-const stations   = {{ stations_json|safe }};
-const upY        = {{ up_y }};
-const downY      = {{ down_y }};
-const trackX1    = {{ track_x1 }};
-const trackX2    = {{ track_x2 }};
-const crossovers = {{ crossovers_json|safe }};
-const networkData = {{ network_json|safe }};
-// State variables for frontend render loop
-let running = true;
-let prevX = null;
-
-// Populate static track blocks inside the SVG
-function drawTrackSegments() {
-    const upGroup = document.getElementById('up-track-segments');
-    const downGroup = document.getElementById('down-track-segments');
-    upGroup.innerHTML = '';
-    downGroup.innerHTML = '';
-    
-    networkData.track_circuits.forEach(tc => {
-        if (tc.line === 'up') {
-            createTrackLine(upGroup, 'block-' + tc.tc_id, tc.start_x, tc.end_x, upY, '#00ff88');
-        } else if (tc.line === 'down') {
-            createTrackLine(downGroup, 'block-' + tc.tc_id, tc.start_x, tc.end_x, downY, '#ffd700');
-        }
-    });
-}
-
-function createTrackLine(group, id, x1, x2, y, defaultColor) {
-    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
     line.setAttribute('x1', x1); line.setAttribute('y1', y);
     line.setAttribute('x2', x2); line.setAttribute('y2', y);
     line.setAttribute('stroke', defaultColor);
     line.setAttribute('stroke-width', '3.5');
+    line.setAttribute('stroke-width', '5'); // thicker lines for premium aesthetic & easy click/hover
     line.setAttribute('id', id);
+    line.setAttribute('class', 'track-line-el');
+    line.setAttribute('data-tc-id', id.replace('block-', ''));
+    line.style.cursor = 'pointer';
+    
+    // Hover event listeners for context menu
+    line.addEventListener('mouseenter', function(e) {
+        showTrackContextMenu(e, id.replace('block-', ''));
+    });
+    line.addEventListener('mouseleave', function() {
+        hideContextMenu();
+    });
+    // Click event listener for properties panel
+    line.addEventListener('click', function(e) {
+        e.stopPropagation();
+        showTrackProperties(id.replace('block-', ''));
+    });
+    
     group.appendChild(line);
 }
 
-// Reset block visual highlights
-function resetAllBlocks() {
-    networkData.track_circuits.forEach(tc => {
-        const el = document.getElementById('block-' + tc.tc_id);
-        if (el) {
-            el.setAttribute('stroke', tc.line === 'up' ? '#00ff88' : '#ffd700');
-        }
-    });
-}
-
-// Update Wayside Signal colors on the SVG
-function renderSignalAspect(sigData) {
-    let greenId, violetId, redId;
-    if (sigData.signal_type === 'station') {
-        const stationNum = sigData.signal_id.split('-')[2];
-        const line = sigData.line;
-        greenId = `sig-${line}-${stationNum}-green`;
-        violetId = `sig-${line}-${stationNum}-violet`;
-        redId = `sig-${line}-${stationNum}-red`;
-    } else {
-        const coIndex = sigData.signal_id.split('-')[2];
-        greenId = `sig-co-${coIndex}-green`;
-        violetId = `sig-co-${coIndex}-violet`;
-        redId = `sig-co-${coIndex}-red`;
-    }
-    const greenEl = document.getElementById(greenId);
-    const violetEl = document.getElementById(violetId);
-    const redEl = document.getElementById(redId);
-    if (!greenEl || !violetEl || !redEl) return;
-    
-    // Reset colors to dark state
-    greenEl.setAttribute('fill', '#002208');
-    violetEl.setAttribute('fill', '#200030');
-    redEl.setAttribute('fill', '#330000');
-    
-    // Illuminate the active aspect
-    if (sigData.aspect === 'GREEN') {
-        greenEl.setAttribute('fill', '#00ff66');
-    } else if (sigData.aspect === 'VIOLET') {
-        violetEl.setAttribute('fill', '#df40ff');
-    } else if (sigData.aspect === 'RED') {
-        redEl.setAttribute('fill', '#ff3344');
     }
 }
 
@@ -561,463 +213,94 @@ function renderSignalAspect(sigData) {
 function renderTrackOccupancies(trackCircuits) {
     resetAllBlocks();
     const color = '#ff3344'; // OCC Occupied Red glow
+// Render track circuits according to ATS Mimic status color rules
+function renderTrackCircuits(trackCircuits) {
     trackCircuits.forEach(tc => {
         if (tc.is_occupied) {
             const el = document.getElementById('block-' + tc.tc_id);
             if (el) {
                 el.setAttribute('stroke', color);
             }
+        const el = document.getElementById('block-' + tc.tc_id);
+        if (!el) return;
+        
+        let color = '#888888'; // Default: clear grey
+        
+        if (tc.failureStatus) {
+            color = '#111111'; // failed black
+        } else if (tc.is_occupied) {
+            color = '#ff3344'; // occupied red
+        } else if (tc.maintenanceBlock) {
+            color = '#a020f0'; // maintenance purple
+        } else if (tc.blocked) {
+            color = '#0066ff'; // route block blue
+        } else if (tc.routeLocked) {
+            color = '#ffffff'; // route white
+        } else if (tc.reservation === 'OVERLAP') {
+            color = '#00ff88'; // overlap green
+        } else if (tc.tsr) {
+            color = '#ffaa00'; // Speed restriction warning amber
         }
+        
+        el.setAttribute('stroke', color);
     });
 }
 
-// Main ajax polling loop
-function fetchSimulationTick() {
-    if (!running) return;
-    fetch('/simulation/tick/')
-        .then(response => {
-            if (!response.ok) throw new Error('HTTP error ' + response.status);
-            return response.json();
-        })
-        .then(data => {
-            updateOCCDashboard(data);
-            setTimeout(fetchSimulationTick, 100);
-        })
-        .catch(err => {
-            console.error('Error fetching simulation tick:', err);
-            setTimeout(fetchSimulationTick, 1000);
-        });
-}
-
-// Renders train coordinate, telemetry values, and wayside elements
-function updateOCCDashboard(data) {
-    const t = data.train;
-    // 1. Move train box on the track
-    const trainCont = document.getElementById('train-container');
-    trainCont.setAttribute('transform', `translate(${t.x - 19}, ${t.y - 7.5})`);
-    
-    // 2. Adjust headlights depending on travel heading
-    const trainGlassEl = document.getElementById('train-glass');
-    const trainLabelEl = document.getElementById('train-label');
-    if (prevX !== null) {
-        const movingLeft = (t.x < prevX);
-        if (movingLeft) {
-            trainGlassEl.setAttribute('x', '2');
-            trainLabelEl.setAttribute('x', '22');
-            trainLabelEl.setAttribute('y', '8');
-        } else {
-            trainGlassEl.setAttribute('x', '30');
-            trainLabelEl.setAttribute('x', '16');
-            trainLabelEl.setAttribute('y', '8');
-        }
-    }
-    prevX = t.x;
-    
-    // 3. Update active block telemetry UI
-    const blockHud = document.getElementById('hud-block');
-    const trainRect = document.getElementById('train');
-    if (t.y === upY) {
-        trainRect.setAttribute('fill', '#00ff88');
-        blockHud.innerText = 'UP LINE';
-        blockHud.className = 'hud-value text-green';
-    } else if (t.y === downY) {
-        trainRect.setAttribute('fill', '#ffd700');
-        blockHud.innerText = 'DOWN LINE';
-        blockHud.className = 'hud-value text-yellow';
-    } else {
-        trainRect.setAttribute('fill', '#df40ff');
-        blockHud.innerText = 'CROSSOVER';
-        blockHud.className = 'hud-value text-violet';
-    }
-    
-    // 4. Update HUD widgets
-    document.getElementById('hud-speed').innerText = (t.speed * 3.6).toFixed(1);
-    document.getElementById('hud-acc').innerText = (t.acc >= 0 ? '+' : '') + t.acc.toFixed(2);
-    document.getElementById('hud-acc').className = t.acc > 0 ? "hud-value text-green" : 
-                                                    t.acc < 0 ? "hud-value text-red" : "hud-value";
     
     document.getElementById('hud-dwell').innerText = t.state === 'DWELLING' ? Math.ceil(t.dwell_timer) : '-';
     
     // 5. Update wayside elements (Signals & Track Circuits)
     renderTrackOccupancies(data.track_circuits);
+    // 5. Update wayside elements (Signals, Track Circuits, Crossovers, & Properties Panel)
+    renderTrackCircuits(data.track_circuits);
     data.signals.forEach(sig => renderSignalAspect(sig));
+    
+    // Update point switches visually from simulation tick data
+    if (data.points) {
+        data.points.forEach(pt => {
+            updatePointBox(pt.point_id, pt.current_state);
+        });
+    }
+    
+    // Refresh properties panel in real-time if open
+    lastTickData = data;
+    if (activePropertiesId) {
+        if (activePropertiesType === 'track') {
+            refreshTrackProperties(activePropertiesId);
+        } else {
+            refreshPointProperties(activePropertiesId);
+        }
+    }
     
     // 6. Update HUD Signal display aspect
     let signalAhead = null;
     if (t.y === upY) {
-        signalAhead = data.signals.filter(s => s.line === 'up' && s.x > t.x).sort((a,b) => a.x - b.x)[0];
-    } else if (t.y === downY) {
-        signalAhead = data.signals.filter(s => s.line === 'down' && s.x < t.x).sort((a,b) => b.x - a.x)[0];
-    }
-    if (signalAhead) {
-        const aspect = signalAhead.aspect;
-        document.getElementById('hud-signal').innerText = aspect;
-        document.getElementById('hud-signal').className = aspect === 'RED' ? 'hud-value text-red' : 
-                                                           aspect === 'VIOLET' ? 'hud-value text-violet' : 'hud-value text-green';
-    } else {
-        document.getElementById('hud-signal').innerText = 'GREEN';
-        document.getElementById('hud-signal').className = 'hud-value text-green';
-    }
-
-    // 7. Update Clock (dynamic increment)
-    const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    document.getElementById('sim-clock').innerText = 'Clock ' + timeStr.split(' ')[0];
-
-    // 8. Update Events table
-    const eventsBody = document.getElementById('events-table-body');
-    if (eventsBody && data.event_logs) {
-        eventsBody.innerHTML = '';
-        data.event_logs.slice().reverse().forEach(log => {
-            const tr = document.createElement('tr');
-            
-            const tdTime = document.createElement('td');
-            tdTime.textContent = log.timestamp;
-            tr.appendChild(tdTime);
-            
-            const tdType = document.createElement('td');
-            tdType.textContent = log.type || 'INFO';
-            tr.appendChild(tdType);
-            
-            const tdSource = document.createElement('td');
-            tdSource.textContent = log.message.includes('Train') ? 'TR-0011' : (log.message.includes('Signal') ? 'SIGNAL' : 'SYSTEM');
-            tr.appendChild(tdSource);
-            
-            const tdDetails = document.createElement('td');
-            tdDetails.textContent = log.message;
-            tr.appendChild(tdDetails);
-            
-            eventsBody.appendChild(tr);
-        });
-    }
-
-    // 9. Update Alarms table
-    const alarmsBody = document.getElementById('alarms-table-body');
-    if (alarmsBody) {
-        let activeAlarmCount = 1;
-        let html = `
-        <tr>
-            <td style="color: #ff3344; font-weight: bold;">MAJOR</td>
-            <td>Route</td>
-            <td>R16</td>
-            <td style="font-weight: bold; color: #ff3344;">Track circuit AX16 occupied by T2.</td>
-            <td style="font-weight: bold;">ACTIVE</td>
-        </tr>`;
-        
-        data.track_circuits.forEach(tc => {
-            if (tc.is_occupied) {
-                activeAlarmCount++;
-                html += `
-                <tr>
-                    <td style="color: #ff3344; font-weight: bold;">MAJOR</td>
-                    <td>Occupancy</td>
-                    <td>${tc.tc_id}</td>
-                    <td style="font-weight: bold; color: #ff3344;">Track circuit ${tc.tc_id} occupied by TR-0011.</td>
-                    <td style="font-weight: bold;">ACTIVE</td>
-                </tr>`;
-            }
-        });
-        alarmsBody.innerHTML = html;
-        document.getElementById('alarm-count-badge').innerText = `${activeAlarmCount} Active Alarms`;
-    }
-}
-
-function toggleSim() {
-    running = !running;
-    const btn = document.getElementById('btn-pause');
-    const opStatusText = document.getElementById('sim-running-status');
-    if (running) {
-        btn.innerText = 'Pause';
-        opStatusText.innerText = 'RUNNING';
-        fetchSimulationTick();
-    } else {
-        btn.innerText = 'Resume';
-        opStatusText.innerText = 'PAUSED';
-    }
-}
-
-// ── Draw SCADA Annotations ──────────────────────────────────────────
-function drawSCADAAnnotations() {
-    const annotationsGroup = document.getElementById('scada-annotations');
-    annotationsGroup.innerHTML = '';
-    
-    // 1. Group stations by unique X coordinates to align platforms vertically
-    const uniqueXs = [...new Set(stations.map(s => s.x))].sort((a, b) => a - b);
-    
-    // Set route selection option tags
-    const routeSelect = document.getElementById('route-select');
-    const fromSelect = document.getElementById('from-select');
-    const toSelect = document.getElementById('to-select');
-    if (routeSelect && uniqueXs.length >= 2) {
-        routeSelect.innerHTML = `<option>R16 S13-S15</option>`;
-        fromSelect.innerHTML = '';
-        toSelect.innerHTML = '';
-        uniqueXs.forEach((x, i) => {
-            const stName = `S${i + 13}`;
-            fromSelect.innerHTML += `<option>${stName}</option>`;
-            toSelect.innerHTML += `<option>${stName}</option>`;
-        });
-    }
-    
-    uniqueXs.forEach((s_x, i) => {
-        const k = i + 1;
-        const st_w = 66;
-        const st_h = 24;
-        
-        // Station limit boundaries box
-        const limitBox = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        limitBox.setAttribute('x', s_x - 90);
-        limitBox.setAttribute('y', upY - 45);
-        limitBox.setAttribute('width', 180);
-        limitBox.setAttribute('height', (downY - upY) + 90);
-        limitBox.setAttribute('fill', '#4e4e4e');
-        limitBox.setAttribute('stroke', '#ffffff');
-        limitBox.setAttribute('stroke-width', '1.5');
-        limitBox.setAttribute('rx', '4');
-        annotationsGroup.appendChild(limitBox);
-        
-        // UP platform block
-        const upPlat = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        upPlat.setAttribute('x', s_x - st_w / 2);
-        upPlat.setAttribute('y', upY - st_h / 2);
-        upPlat.setAttribute('width', st_w);
-        upPlat.setAttribute('height', st_h);
-        upPlat.setAttribute('fill', '#d3d3d3');
-        upPlat.setAttribute('stroke', '#000000');
-        upPlat.setAttribute('stroke-width', '1.5');
-        upPlat.setAttribute('rx', '2');
-        annotationsGroup.appendChild(upPlat);
-        
-        const pe1Text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        pe1Text.setAttribute('x', s_x);
-        pe1Text.setAttribute('y', upY - 2);
-        pe1Text.setAttribute('text-anchor', 'middle');
-        pe1Text.setAttribute('fill', '#000000');
-        pe1Text.setAttribute('font-size', '8.5');
-        pe1Text.setAttribute('font-family', "'Outfit', sans-serif");
-        pe1Text.setAttribute('font-weight', 'bold');
-        pe1Text.textContent = 'PE1';
-        annotationsGroup.appendChild(pe1Text);
-        
-        if (k % 2 === 1) {
-            const spkText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            spkText.setAttribute('x', s_x);
-            spkText.setAttribute('y', upY + 8);
-            spkText.setAttribute('text-anchor', 'middle');
-            spkText.setAttribute('fill', '#000000');
-            spkText.setAttribute('font-size', '7.5');
-            spkText.setAttribute('font-family', "'Outfit', sans-serif");
-            spkText.textContent = `SPK${k}`;
-            annotationsGroup.appendChild(spkText);
-        }
-        
-        // DOWN platform block
-        const dnPlat = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        dnPlat.setAttribute('x', s_x - st_w / 2);
-        dnPlat.setAttribute('y', downY - st_h / 2);
-        dnPlat.setAttribute('width', st_w);
-        dnPlat.setAttribute('height', st_h);
-        dnPlat.setAttribute('fill', '#d3d3d3');
-        dnPlat.setAttribute('stroke', '#000000');
-        dnPlat.setAttribute('stroke-width', '1.5');
-        dnPlat.setAttribute('rx', '2');
-        annotationsGroup.appendChild(dnPlat);
-        
-        const pf2Text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        pf2Text.setAttribute('x', s_x);
-        pf2Text.setAttribute('y', downY - 2);
-        pf2Text.setAttribute('text-anchor', 'middle');
-        pf2Text.setAttribute('fill', '#000000');
-        pf2Text.setAttribute('font-size', '8.5');
-        pf2Text.setAttribute('font-family', "'Outfit', sans-serif");
-        pf2Text.setAttribute('font-weight', 'bold');
-        pf2Text.textContent = 'PF2';
-        annotationsGroup.appendChild(pf2Text);
-        
-        const bottomLabel = (k % 2 === 1) ? `SPK${k+1}` : `STN${k}`;
-        const bottomText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        bottomText.setAttribute('x', s_x);
-        bottomText.setAttribute('y', downY + 8);
-        bottomText.setAttribute('text-anchor', 'middle');
-        bottomText.setAttribute('fill', '#000000');
-        bottomText.setAttribute('font-size', '7.5');
-        bottomText.setAttribute('font-family', "'Outfit', sans-serif");
-        bottomText.textContent = bottomLabel;
-        annotationsGroup.appendChild(bottomText);
-        
-        // Station Title Label above top platform
-        const titleText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        titleText.setAttribute('x', s_x);
-        titleText.setAttribute('y', upY - st_h/2 - 12);
-        titleText.setAttribute('text-anchor', 'middle');
-        titleText.setAttribute('fill', '#ffffff');
-        titleText.setAttribute('font-size', '10.5');
-        titleText.setAttribute('font-family', "'Outfit', sans-serif");
-        titleText.setAttribute('font-weight', 'bold');
-        titleText.textContent = `Station ${k}`;
-        annotationsGroup.appendChild(titleText);
-        
-        // ESP top-left and top-right labels
-        const espTL = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        espTL.setAttribute('x', s_x - st_w / 2 - 12);
-        espTL.setAttribute('y', upY - st_h / 2 - 12);
-        espTL.setAttribute('fill', '#c0c0c0');
-        espTL.setAttribute('font-size', '8');
-        espTL.setAttribute('font-family', "monospace");
-        espTL.setAttribute('font-weight', 'bold');
-        espTL.textContent = `ESP${4*k - 3}`;
-        annotationsGroup.appendChild(espTL);
-        
-        const espTR = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        espTR.setAttribute('x', s_x + st_w / 2 - 12);
-        espTR.setAttribute('y', upY - st_h / 2 - 12);
-        espTR.setAttribute('fill', '#c0c0c0');
-        espTR.setAttribute('font-size', '8');
-        espTR.setAttribute('font-family', "monospace");
-        espTR.setAttribute('font-weight', 'bold');
-        espTR.textContent = `ESP${4*k - 2}`;
-        annotationsGroup.appendChild(espTR);
-        
-        // ESP bottom-right label
-        const espBR = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        espBR.setAttribute('x', s_x + st_w / 2 - 12);
-        espBR.setAttribute('y', downY + st_h / 2 + 18);
-        espBR.setAttribute('fill', '#c0c0c0');
-        espBR.setAttribute('font-size', '8');
-        espBR.setAttribute('font-family', "monospace");
-        espBR.setAttribute('font-weight', 'bold');
-        espBR.textContent = `ESP${4*k}`;
-        annotationsGroup.appendChild(espBR);
-        
-        // ESP bottom-left label (only for even stations)
-        if (k % 2 === 0) {
-            const espBL = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            espBL.setAttribute('x', s_x - st_w / 2 - 12);
-            espBL.setAttribute('y', downY + st_h / 2 + 18);
-            espBL.setAttribute('fill', '#c0c0c0');
-            espBL.setAttribute('font-size', '8');
-            espBL.setAttribute('font-family', "monospace");
-            espBL.setAttribute('font-weight', 'bold');
-            espBL.textContent = `ESP${4*k - 1}`;
-            annotationsGroup.appendChild(espBL);
-        }
-        
-        // Track boundaries & axle counter dots
-        const leftLimitX = s_x - 90;
-        const rightLimitX = s_x + 90;
-        
-        function drawDotAndA(cx, cy, alignRight) {
-            const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-            dot.setAttribute('cx', cx);
-            dot.setAttribute('cy', cy);
-            dot.setAttribute('r', '3.5');
-            dot.setAttribute('fill', '#000000');
-            annotationsGroup.appendChild(dot);
-            
-            const letterA = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            letterA.setAttribute('x', alignRight ? cx + 6 : cx - 12);
-            letterA.setAttribute('y', cy + 3);
-            letterA.setAttribute('fill', '#000000');
-            letterA.setAttribute('font-size', '9');
-            letterA.setAttribute('font-weight', 'bold');
-            letterA.textContent = 'A';
-            annotationsGroup.appendChild(letterA);
-        }
-        
-        drawDotAndA(leftLimitX, upY, false);
-        drawDotAndA(leftLimitX, downY, false);
-        drawDotAndA(rightLimitX, upY, true);
-        drawDotAndA(rightLimitX, downY, true);
-        
-        // Axle Counter Labels
-        const tlAXCVal = [61, 54, 63, 47][(k - 1) % 4];
-        const axcTL = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        axcTL.setAttribute('x', leftLimitX - 10);
-        axcTL.setAttribute('y', upY - 8);
-        axcTL.setAttribute('fill', '#000000');
-        axcTL.setAttribute('font-size', '8');
-        axcTL.setAttribute('font-family', "sans-serif");
-        axcTL.setAttribute('font-weight', 'bold');
-        axcTL.textContent = `AXC${tlAXCVal}`;
-        annotationsGroup.appendChild(axcTL);
-        
-        const trAXCVal = [23, 87, 40, 48][(k - 1) % 4];
-        const axcTR = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        axcTR.setAttribute('x', rightLimitX - 15);
-        axcTR.setAttribute('y', upY - 8);
-        axcTR.setAttribute('fill', '#000000');
-        axcTR.setAttribute('font-size', '8');
-        axcTR.setAttribute('font-family', "sans-serif");
-        axcTR.setAttribute('font-weight', 'bold');
-        axcTR.textContent = `AXC${trAXCVal}`;
-        annotationsGroup.appendChild(axcTR);
-        
-        const axTop = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        axTop.setAttribute('x', rightLimitX + 15);
-        axTop.setAttribute('y', upY - 8);
-        axTop.setAttribute('fill', '#333333');
-        axTop.setAttribute('font-size', '7.5');
-        axTop.textContent = `AX${2*k + 15}`;
-        annotationsGroup.appendChild(axTop);
-        
-        const brAXCVal = [36, 80, 42, 48][(k - 1) % 4];
-        const axcBR = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        axcBR.setAttribute('x', rightLimitX - 15);
-        axcBR.setAttribute('y', downY + 14);
-        axcBR.setAttribute('fill', '#000000');
-        axcBR.setAttribute('font-size', '8');
-        axcBR.setAttribute('font-family', "sans-serif");
-        axcBR.setAttribute('font-weight', 'bold');
-        axcBR.textContent = `AXC${brAXCVal}`;
-        annotationsGroup.appendChild(axcBR);
-        
-        const axBot = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        axBot.setAttribute('x', rightLimitX + 15);
-        axBot.setAttribute('y', downY + 14);
-        axBot.setAttribute('fill', '#333333');
-        axBot.setAttribute('font-size', '7.5');
-        axBot.textContent = `AX${2*k + 16}`;
-        annotationsGroup.appendChild(axBot);
-    });
-
-    // 2. Draw bi-color point boxes next to crossovers
-    crossovers.forEach(co => {
-        const idx = co.index;
-        const mid_x = co.mid_x;
         
         function drawPointBox(x, y, label) {
             const pGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            pGroup.setAttribute('id', `point-group-${label}`);
+            pGroup.setAttribute('class', `point-switch-el`);
+            pGroup.setAttribute('data-point-id', label);
+            pGroup.style.cursor = 'pointer';
+            
+            pGroup.addEventListener('mouseenter', function(e) {
+                showPointContextMenu(e, label);
+            });
+            pGroup.addEventListener('mouseleave', function() {
+                hideContextMenu();
+            });
+            pGroup.addEventListener('click', function(e) {
+                e.stopPropagation();
+                showPointProperties(label);
+            });
             
             // Black segment
             const rBlack = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
             rBlack.setAttribute('x', x);
-            rBlack.setAttribute('y', y);
-            rBlack.setAttribute('width', '24');
-            rBlack.setAttribute('height', '14');
-            rBlack.setAttribute('fill', '#000000');
-            rBlack.setAttribute('stroke', '#666666');
-            rBlack.setAttribute('stroke-width', '1');
-            pGroup.appendChild(rBlack);
-            
-            const tP = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            tP.setAttribute('x', x + 12);
-            tP.setAttribute('y', y + 10);
-            tP.setAttribute('text-anchor', 'middle');
-            tP.setAttribute('fill', '#00ff88');
-            tP.setAttribute('font-size', '8');
-            tP.setAttribute('font-family', "monospace");
-            tP.setAttribute('font-weight', 'bold');
-            tP.textContent = label;
-            pGroup.appendChild(tP);
-            
-            // Green segment
-            const rGreen = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-            rGreen.setAttribute('x', x + 24);
-            rGreen.setAttribute('y', y);
-            rGreen.setAttribute('width', '14');
-            rGreen.setAttribute('height', '14');
             rGreen.setAttribute('fill', '#00ff88');
             rGreen.setAttribute('stroke', '#666666');
             rGreen.setAttribute('stroke-width', '1');
+            rGreen.setAttribute('class', 'point-status-rect');
             pGroup.appendChild(rGreen);
             
             const tN = document.createElementNS('http://www.w3.org/2000/svg', 'text');
@@ -1028,115 +311,259 @@ function drawSCADAAnnotations() {
             tN.setAttribute('font-size', '8.5');
             tN.setAttribute('font-family', "monospace");
             tN.setAttribute('font-weight', 'bold');
+            tN.setAttribute('class', 'point-status-text');
             tN.textContent = 'N';
             pGroup.appendChild(tN);
             
-            annotationsGroup.appendChild(pGroup);
-        }
-        
-        const top_y = upY - 24;
-        const bot_y = downY + 8;
-        
-        if (idx % 2 === 1) {
-            drawPointBox(mid_x - 40, top_y, `P${2*idx - 1}`);
-            drawPointBox(mid_x - 40, bot_y, `P${2*idx}`);
-            
-            const fmText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            fmText.setAttribute('x', mid_x + 5);
-            fmText.setAttribute('y', top_y + 10);
-            fmText.setAttribute('fill', '#333333');
-            fmText.setAttribute('font-size', '8');
-            fmText.setAttribute('font-weight', 'bold');
-            fmText.textContent = `FM${idx}`;
-            annotationsGroup.appendChild(fmText);
-            
-            const cpText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            cpText.setAttribute('x', mid_x + 5);
-            cpText.setAttribute('y', bot_y + 10);
-            cpText.setAttribute('fill', '#003366');
-            cpText.setAttribute('font-size', '8');
-            cpText.setAttribute('font-weight', 'bold');
-            cpText.textContent = `CP${idx}`;
-            annotationsGroup.appendChild(cpText);
-            
-            const esText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            esText.setAttribute('x', mid_x - 60);
-            esText.setAttribute('y', bot_y + 10);
-            esText.setAttribute('fill', '#333333');
-            esText.setAttribute('font-size', '8');
-            esText.setAttribute('font-weight', 'bold');
-            esText.textContent = 'ES';
-            annotationsGroup.appendChild(esText);
-        } else {
-            drawPointBox(mid_x - 55, top_y, `P${2*idx - 1}`);
-            drawPointBox(mid_x + 5, top_y, `P${2*idx + 1}`);
-            drawPointBox(mid_x - 55, bot_y, `P${2*idx}`);
-            drawPointBox(mid_x + 5, bot_y, `P${2*idx + 2}`);
-            
-            const fmText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            fmText.setAttribute('x', mid_x - 15);
-            fmText.setAttribute('y', top_y + 10);
-            fmText.setAttribute('fill', '#333333');
-            fmText.setAttribute('font-size', '8');
-            fmText.setAttribute('font-weight', 'bold');
-            fmText.textContent = `FM${idx}`;
-            annotationsGroup.appendChild(fmText);
-            
-            const cpText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            cpText.setAttribute('x', mid_x - 15);
-            cpText.setAttribute('y', bot_y + 10);
-            cpText.setAttribute('fill', '#003366');
-            cpText.setAttribute('font-size', '8');
-            cpText.setAttribute('font-weight', 'bold');
-            cpText.textContent = `CP${idx}`;
-            annotationsGroup.appendChild(cpText);
-            
-            const esText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            esText.setAttribute('x', mid_x - 75);
-            esText.setAttribute('y', bot_y + 10);
-            esText.setAttribute('fill', '#333333');
-            esText.setAttribute('font-size', '8');
-            esText.setAttribute('font-weight', 'bold');
-            esText.textContent = 'ES';
-            annotationsGroup.appendChild(esText);
-        }
-    });
-
-    // 3. Rename Signal Labels dynamically to S2, S3, etc.
-    let upSigCount = 0;
-    let dnSigCount = 0;
-    const dnLabels = ["S3", "S4", "S7", "S8", "S11"];
-    networkData.signals.forEach(sig => {
-        const el = document.getElementById(`sig-label-${sig.signal_id}`);
-        if (el) {
-            if (sig.line === 'up') {
-                upSigCount++;
-                el.textContent = `S${upSigCount * 4 - 2}`;
-            } else {
-                dnSigCount++;
-                el.textContent = dnLabels[(dnSigCount - 1) % dnLabels.length] || `S${dnSigCount * 2 + 1}`;
-            }
-        }
     });
 }
 
-// Coordinate Display Handler
-const svgEl = document.getElementById('track-svg');
-if (svgEl) {
-    svgEl.addEventListener('click', function(event) {
-        const rect = svgEl.getBoundingClientRect();
-        const viewBox = svgEl.viewBox.baseVal;
-        const x = Math.round((event.clientX - rect.left) / rect.width * viewBox.width);
-        const y = Math.round((event.clientY - rect.top) / rect.height * viewBox.height);
-        
-        const coordJson = {
-            "x1": x - 27,
-            "y1": y,
-            "x2": x + 27,
-            "y2": y
-        };
-        document.getElementById('coord-json').innerText = JSON.stringify(coordJson, null, 2);
+// ── Context Menu & Sidebar Properties Logic ─────────────────────────
+let activePropertiesId = null;
+let activePropertiesType = null;
+let contextMenuTimer = null;
+const contextMenu = document.getElementById('context-menu');
+const propPanel = document.getElementById('properties-panel');
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function showTrackContextMenu(e, tcId) {
+    clearTimeout(contextMenuTimer);
+    contextMenu.style.display = 'block';
+    contextMenu.style.left = (e.pageX + 10) + 'px';
+    contextMenu.style.top = (e.pageY + 10) + 'px';
+    
+    const items = [
+        { label: 'Route Set', cmd: 'route_set' },
+        { label: 'Set TSR', cmd: 'set_tsr' },
+        { label: 'Release TSR', cmd: 'release_tsr' },
+        { label: 'No Entry ON', cmd: 'no_entry_on' },
+        { label: 'No Entry OFF', cmd: 'no_entry_off' },
+        { label: 'Maint Block', cmd: 'maint_block' },
+        { label: 'Maint Release', cmd: 'maint_release' },
+        { label: 'Low Adhesion ON', cmd: 'low_adhesion_on' },
+        { label: 'Low Adhesion OFF', cmd: 'low_adhesion_off' },
+        { label: 'Clear Locking', cmd: 'clear_locking' }
+    ];
+    
+    let html = '';
+    items.forEach(item => {
+        html += `<div class="context-menu-item" onclick="executeContextCommand('${tcId}', 'track', '${item.cmd}')">${item.label}</div>`;
     });
+    contextMenu.innerHTML = html;
+}
+
+function showPointContextMenu(e, pointId) {
+    clearTimeout(contextMenuTimer);
+    contextMenu.style.display = 'block';
+    contextMenu.style.left = (e.pageX + 10) + 'px';
+    contextMenu.style.top = (e.pageY + 10) + 'px';
+    
+    const items = [
+        { label: 'NORMAL', cmd: 'NORMAL' },
+        { label: 'REVERSE', cmd: 'REVERSE' }
+    ];
+    
+    let html = '';
+    items.forEach(item => {
+        html += `<div class="context-menu-item" onclick="executeContextCommand('${pointId}', 'point', '${item.cmd}')">${item.label}</div>`;
+    });
+    contextMenu.innerHTML = html;
+}
+
+function hideContextMenu() {
+    contextMenuTimer = setTimeout(() => {
+        contextMenu.style.display = 'none';
+    }, 400);
+}
+
+contextMenu.addEventListener('mouseenter', () => {
+    clearTimeout(contextMenuTimer);
+});
+contextMenu.addEventListener('mouseleave', () => {
+    contextMenu.style.display = 'none';
+});
+
+function executeContextCommand(targetId, type, cmd) {
+    contextMenu.style.display = 'none';
+    const url = type === 'track' ? '/simulation/update_track/' : '/simulation/update_point/';
+    const payload = type === 'track' 
+        ? { tc_id: targetId, command: cmd } 
+        : { point_id: targetId, position: cmd };
+        
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify(payload)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'ok') {
+            console.log(`${type} command ${cmd} completed successfully.`);
+        }
+    })
+    .catch(err => console.error('Error executing command:', err));
+}
+
+function showTrackProperties(tcId) {
+    activePropertiesId = tcId;
+    activePropertiesType = 'track';
+    refreshTrackProperties(tcId);
+    propPanel.classList.add('open');
+}
+
+function showPointProperties(pointId) {
+    activePropertiesId = pointId;
+    activePropertiesType = 'point';
+    refreshPointProperties(pointId);
+    propPanel.classList.add('open');
+}
+
+function closePropertiesPanel() {
+    activePropertiesId = null;
+    activePropertiesType = null;
+    propPanel.classList.remove('open');
+}
+
+function refreshTrackProperties(tcId) {
+    if (!lastTickData) return;
+    const tc = lastTickData.track_circuits.find(t => t.tc_id === tcId);
+    if (!tc) return;
+    
+    document.getElementById('panel-title').innerText = `TRACK-CIRCUIT ${tc.tc_id}`;
+    
+    const props = [
+        { key: 'id', val: tc.tc_id },
+        { key: 'name', val: tc.name || 'N/A' },
+        { key: 'section', val: tc.section || 'N/A' },
+        { key: 'type', val: tc.type || 'N/A' },
+        { key: 'chainageStart', val: tc.chainageStart !== undefined ? (tc.chainageStart/1000).toFixed(3).replace('.', '+') : 'N/A' },
+        { key: 'chainageEnd', val: tc.chainageEnd !== undefined ? (tc.chainageEnd/1000).toFixed(3).replace('.', '+') : 'N/A' },
+        { key: 'startAxId', val: tc.startAxId || 'N/A' },
+        { key: 'endAxId', val: tc.endAxId || 'N/A' },
+        { key: 'lineDirection', val: tc.lineDirection || 'N/A' },
+        { key: 'status', val: tc.status || 'CLEAR' },
+        { key: 'length', val: (tc.length || 0) + ' m' },
+        { key: 'routeLocked', val: tc.routeLocked ? 'true' : 'false' },
+        { key: 'reservation', val: tc.reservation || 'NONE' },
+        { key: 'axleCounterReset', val: tc.axleCounterReset || 'NORMAL' },
+        { key: 'failureStatus', val: tc.failureStatus ? 'true' : 'false' },
+        { key: 'maintenanceBlock', val: tc.maintenanceBlock ? 'true' : 'false' },
+        { key: 'blocked', val: tc.blocked ? 'true' : 'false' },
+        { key: 'noEntry', val: tc.noEntry ? 'true' : 'false' },
+        { key: 'tsr', val: tc.tsr ? 'true' : 'false' },
+        { key: 'lowAdhesion', val: tc.lowAdhesion ? 'true' : 'false' },
+        { key: 'reducedBrakeRate', val: tc.reducedBrakeRate ? 'true' : 'false' },
+        { key: 'neutralZone', val: tc.neutralZone ? 'true' : 'false' },
+        { key: 'raDisabled', val: tc.raDisabled ? 'true' : 'false' },
+        { key: 'directionArrow', val: tc.directionArrow || 'N/A' },
+        { key: 'cbiMapping', val: tc.cbiMapping || 'N/A' },
+        { key: 'atpBlockRef', val: tc.atpBlockRef || 'N/A' },
+        { key: 'lastStatusChange', val: tc.lastStatusChange ? tc.lastStatusChange.split('T')[1].substring(0, 12) : 'N/A' },
+        { key: 'x1', val: tc.x1 },
+        { key: 'y1', val: tc.y1 },
+        { key: 'x2', val: tc.x2 },
+        { key: 'y2', val: tc.y2 }
+    ];
+    
+    let html = '';
+    props.forEach(p => {
+        html += `<tr><td class="key">${p.key}</td><td class="val">${p.val}</td></tr>`;
+    });
+    document.getElementById('panel-properties-list').innerHTML = html;
+    
+    // Commands List
+    const cmds = [
+        { label: 'Set TSR', cmd: 'set_tsr' },
+        { label: 'Release TSR', cmd: 'release_tsr' },
+        { label: 'No Entry ON', cmd: 'no_entry_on' },
+        { label: 'No Entry OFF', cmd: 'no_entry_off' },
+        { label: 'Maint Block', cmd: 'maint_block' },
+        { label: 'Maint Release', cmd: 'maint_release' },
+        { label: 'Low Adhesion ON', cmd: 'low_adhesion_on' },
+        { label: 'Clear Locking', cmd: 'clear_locking', danger: true }
+    ];
+    
+    let cmdHtml = '';
+    cmds.forEach(c => {
+        cmdHtml += `<button class="cmd-btn ${c.danger ? 'danger' : ''}" onclick="executeContextCommand('${tcId}', 'track', '${c.cmd}')">${c.label}</button>`;
+    });
+    document.getElementById('panel-commands-list').innerHTML = cmdHtml;
+}
+
+function refreshPointProperties(pointId) {
+    if (!lastTickData) return;
+    const pt = lastTickData.points.find(p => p.point_id === pointId);
+    if (!pt) return;
+    
+    document.getElementById('panel-title').innerText = `POINT-SWITCH ${pt.point_id}`;
+    
+    const props = [
+        { key: 'pointId', val: pt.point_id },
+        { key: 'tcId', val: pt.tc_id },
+        { key: 'fromStation', val: 'Station ' + pt.from_station },
+        { key: 'toStation', val: 'Station ' + pt.to_station },
+        { key: 'positionType', val: pt.position_type },
+        { key: 'crossoverType', val: pt.crossover_type || 'N/A' },
+        { key: 'currentState', val: pt.current_state },
+        { key: 'isLocked', val: pt.is_locked ? 'true' : 'false' },
+        { key: 'xLeft', val: pt.x_left },
+        { key: 'xRight', val: pt.x_right },
+        { key: 'yUp', val: pt.y_up },
+        { key: 'yDown', val: pt.y_down }
+    ];
+    
+    let html = '';
+    props.forEach(p => {
+        html += `<tr><td class="key">${p.key}</td><td class="val">${p.val}</td></tr>`;
+    });
+    document.getElementById('panel-properties-list').innerHTML = html;
+    
+    // Show select dropdown for Normal / Reverse state
+    let cmdHtml = `
+        <div style="grid-column: span 2; display: flex; align-items: center; justify-content: space-between; padding: 5px 0;">
+            <label style="font-size: 13px; font-weight: 600; color: #8888aa;">Set Position:</label>
+            <select onchange="executeContextCommand('${pointId}', 'point', this.value)" style="padding: 6px 12px; background: #1a1a2e; border: 1.5px solid var(--border-color); color: #ffffff; border-radius: 4px; font-family: Outfit; font-weight: bold; cursor: pointer; outline: none;" ${pt.is_locked ? 'disabled' : ''}>
+                <option value="NORMAL" ${pt.current_state === 'NORMAL' ? 'selected' : ''}>NORMAL</option>
+                <option value="REVERSE" ${pt.current_state === 'REVERSE' ? 'selected' : ''}>REVERSE</option>
+            </select>
+        </div>
+    `;
+    document.getElementById('panel-commands-list').innerHTML = cmdHtml;
+}
+
+function updatePointBox(label, state) {
+    const group = document.getElementById(`point-group-${label}`);
+    if (!group) return;
+    
+    const rect = group.querySelector('.point-status-rect');
+    const text = group.querySelector('.point-status-text');
+    
+    if (rect && text) {
+        if (state === 'REVERSE') {
+            rect.setAttribute('fill', '#ffd700'); // Yellow
+            text.textContent = 'R';
+        } else {
+            rect.setAttribute('fill', '#00ff88'); // Green
+            text.textContent = 'N';
+        }
+    }
 }
 
 // Initial draw sequence
