@@ -300,19 +300,19 @@
                 <!-- 3-Aspect Wayside Signals protecting Crossover Entry -->
                 {% if co.type == 'up_to_down' %}
                     <g id="signal-co-group-{{ co.index }}">
-                        <line x1="{{ co.x_left|add:-15 }}" y1="{{ up_y|add:-15 }}" x2="{{ co.x_left|add:-15 }}" y2="{{ up_y|add:15 }}" stroke="#555" stroke-width="2"/>
-                        <rect x="{{ co.x_left|add:-20 }}" y="{{ up_y|add:-18 }}" width="10" height="26" fill="#111" stroke="#333" stroke-width="1" rx="2"/>
-                        <circle id="sig-co-{{ co.index }}-green" cx="{{ co.x_left|add:-15 }}" cy="{{ up_y|add:-13 }}" r="2.5" fill="#00ff66" filter="url(#glow)"/>
-                        <circle id="sig-co-{{ co.index }}-violet" cx="{{ co.x_left|add:-15 }}" cy="{{ up_y|add:-5 }}" r="2.5" fill="#330040"/>
-                        <circle id="sig-co-{{ co.index }}-red" cx="{{ co.x_left|add:-15 }}" cy="{{ up_y|add:3 }}" r="2.5" fill="#400000"/>
+                        <line x1="{{ co.x_left|add:-15 }}" y1="{{ up_y|add:-30 }}" x2="{{ co.x_left|add:-15 }}" y2="{{ up_y }}" stroke="#555" stroke-width="2"/>
+                        <rect x="{{ co.x_left|add:-20 }}" y="{{ up_y|add:-28 }}" width="10" height="26" fill="#111" stroke="#333" stroke-width="1" rx="2"/>
+                        <circle id="sig-co-{{ co.index }}-green" cx="{{ co.x_left|add:-15 }}" cy="{{ up_y|add:-23 }}" r="2.5" fill="#002208" filter="url(#glow)"/>
+                        <circle id="sig-co-{{ co.index }}-violet" cx="{{ co.x_left|add:-15 }}" cy="{{ up_y|add:-15 }}" r="2.5" fill="#200030"/>
+                        <circle id="sig-co-{{ co.index }}-red" cx="{{ co.x_left|add:-15 }}" cy="{{ up_y|add:-7 }}" r="2.5" fill="#330000"/>
                     </g>
                 {% else %}
                     <g id="signal-co-group-{{ co.index }}">
-                        <line x1="{{ co.x_right|add:15 }}" y1="{{ down_y|add:-15 }}" x2="{{ co.x_right|add:15 }}" y2="{{ down_y|add:15 }}" stroke="#555" stroke-width="2"/>
-                        <rect x="{{ co.x_right|add:10 }}" y="{{ down_y|add:-18 }}" width="10" height="26" fill="#111" stroke="#333" stroke-width="1" rx="2"/>
-                        <circle id="sig-co-{{ co.index }}-green" cx="{{ co.x_right|add:15 }}" cy="{{ down_y|add:-13 }}" r="2.5" fill="#00ff66" filter="url(#glow)"/>
-                        <circle id="sig-co-{{ co.index }}-violet" cx="{{ co.x_right|add:15 }}" cy="{{ down_y|add:-5 }}" r="2.5" fill="#330040"/>
-                        <circle id="sig-co-{{ co.index }}-red" cx="{{ co.x_right|add:15 }}" cy="{{ down_y|add:3 }}" r="2.5" fill="#400000"/>
+                        <line x1="{{ co.x_right|add:15 }}" y1="{{ down_y }}" x2="{{ co.x_right|add:15 }}" y2="{{ down_y|add:30 }}" stroke="#555" stroke-width="2"/>
+                        <rect x="{{ co.x_right|add:10 }}" y="{{ down_y|add:2 }}" width="10" height="26" fill="#111" stroke="#333" stroke-width="1" rx="2"/>
+                        <circle id="sig-co-{{ co.index }}-green" cx="{{ co.x_right|add:15 }}" cy="{{ down_y|add:23 }}" r="2.5" fill="#002208" filter="url(#glow)"/>
+                        <circle id="sig-co-{{ co.index }}-violet" cx="{{ co.x_right|add:15 }}" cy="{{ down_y|add:15 }}" r="2.5" fill="#200030"/>
+                        <circle id="sig-co-{{ co.index }}-red" cx="{{ co.x_right|add:15 }}" cy="{{ down_y|add:7 }}" r="2.5" fill="#330000"/>
                     </g>
                 {% endif %}
             </g>
@@ -339,19 +339,19 @@
                 <!-- 3-Aspect Platform Wayside Signals -->
                 <!-- UP Station Signal (Placed left of platform) -->
                 <g id="signal-up-group-{{ s.number }}">
-                    <line x1="{{ s.box_x|add:-15 }}" y1="{{ s.up_y|add:-15 }}" x2="{{ s.box_x|add:-15 }}" y2="{{ s.up_y|add:15 }}" stroke="#555" stroke-width="2"/>
-                    <rect x="{{ s.box_x|add:-20 }}" y="{{ s.up_y|add:-18 }}" width="10" height="26" fill="#111" stroke="#333" stroke-width="1" rx="2"/>
-                    <circle id="sig-up-{{ s.number }}-green" cx="{{ s.box_x|add:-15 }}" cy="{{ s.up_y|add:-13 }}" r="2.5" fill="#00ff66" filter="url(#glow)"/>
-                    <circle id="sig-up-{{ s.number }}-violet" cx="{{ s.box_x|add:-15 }}" cy="{{ s.up_y|add:-5 }}" r="2.5" fill="#330040"/>
-                    <circle id="sig-up-{{ s.number }}-red" cx="{{ s.box_x|add:-15 }}" cy="{{ s.up_y|add:3 }}" r="2.5" fill="#400000"/>
+                    <line x1="{{ s.box_x|add:-15 }}" y1="{{ s.up_y|add:-30 }}" x2="{{ s.box_x|add:-15 }}" y2="{{ s.up_y }}" stroke="#555" stroke-width="2"/>
+                    <rect x="{{ s.box_x|add:-20 }}" y="{{ s.up_y|add:-28 }}" width="10" height="26" fill="#111" stroke="#333" stroke-width="1" rx="2"/>
+                    <circle id="sig-up-{{ s.number }}-green" cx="{{ s.box_x|add:-15 }}" cy="{{ s.up_y|add:-23 }}" r="2.5" fill="#002208" filter="url(#glow)"/>
+                    <circle id="sig-up-{{ s.number }}-violet" cx="{{ s.box_x|add:-15 }}" cy="{{ s.up_y|add:-15 }}" r="2.5" fill="#200030"/>
+                    <circle id="sig-up-{{ s.number }}-red" cx="{{ s.box_x|add:-15 }}" cy="{{ s.up_y|add:-7 }}" r="2.5" fill="#330000"/>
                 </g>
                 <!-- DOWN Station Signal (Placed right of platform) -->
                 <g id="signal-down-group-{{ s.number }}">
-                    <line x1="{{ s.box_x|add:75 }}" y1="{{ s.down_y|add:-15 }}" x2="{{ s.box_x|add:75 }}" y2="{{ s.down_y|add:15 }}" stroke="#555" stroke-width="2"/>
-                    <rect x="{{ s.box_x|add:70 }}" y="{{ s.down_y|add:-18 }}" width="10" height="26" fill="#111" stroke="#333" stroke-width="1" rx="2"/>
-                    <circle id="sig-down-{{ s.number }}-green" cx="{{ s.box_x|add:75 }}" cy="{{ s.down_y|add:-13 }}" r="2.5" fill="#00ff66" filter="url(#glow)"/>
-                    <circle id="sig-down-{{ s.number }}-violet" cx="{{ s.box_x|add:75 }}" cy="{{ s.down_y|add:-5 }}" r="2.5" fill="#330040"/>
-                    <circle id="sig-down-{{ s.number }}-red" cx="{{ s.box_x|add:75 }}" cy="{{ s.down_y|add:3 }}" r="2.5" fill="#400000"/>
+                    <line x1="{{ s.box_x|add:75 }}" y1="{{ s.down_y }}" x2="{{ s.box_x|add:75 }}" y2="{{ s.down_y|add:30 }}" stroke="#555" stroke-width="2"/>
+                    <rect x="{{ s.box_x|add:70 }}" y="{{ s.down_y|add:2 }}" width="10" height="26" fill="#111" stroke="#333" stroke-width="1" rx="2"/>
+                    <circle id="sig-down-{{ s.number }}-green" cx="{{ s.box_x|add:75 }}" cy="{{ s.down_y|add:23 }}" r="2.5" fill="#002208" filter="url(#glow)"/>
+                    <circle id="sig-down-{{ s.number }}-violet" cx="{{ s.box_x|add:75 }}" cy="{{ s.down_y|add:15 }}" r="2.5" fill="#200030"/>
+                    <circle id="sig-down-{{ s.number }}-red" cx="{{ s.box_x|add:75 }}" cy="{{ s.down_y|add:7 }}" r="2.5" fill="#330000"/>
                 </g>
             </g>
         {% endfor %}

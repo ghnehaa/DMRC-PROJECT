@@ -1,32 +1,193 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>DMRC Login</title>
+    <title>DMRC Login — Control Centre</title>
+    <!-- Import Outfit Google Font for a modern premium look -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
     <style>
-        body { font-family: Arial; background: #1a1a2e; display: flex;
-               justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .box { background: white; padding: 40px; border-radius: 10px; width: 320px; }
-        h2 { color: #003580; text-align: center; }
-        input { width: 100%; padding: 10px; margin: 8px 0; box-sizing: border-box;
-                border: 1px solid #ccc; border-radius: 5px; }
-        button { width: 100%; padding: 10px; background: #003580; color: white;
-                 border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
-        .error { color: red; font-size: 13px; }
-        .logo { text-align: center; font-size: 24px; font-weight: bold; color: #e63946; }
+        :root {
+            --bg-color: #f4f6fc;
+            --card-bg: #ffffff;
+            --border-color: #e2e8f0;
+            --primary-blue: #0052cc;
+            --accent-blue-light: #e6f0ff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --accent-red: #ef4444;
+            --accent-red-light: #fee2e2;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: linear-gradient(135deg, #0b1a30 0%, #1e293b 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Metro grid pattern overlay */
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image: linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 20px 20px;
+            pointer-events: none;
+        }
+
+        .box {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px;
+            border-radius: 20px;
+            width: 360px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3), 0 0 100px rgba(0, 82, 204, 0.15);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: transform 0.3s ease;
+        }
+
+        .header-logo-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .logo-icon-container {
+            width: 60px;
+            height: 60px;
+            background: var(--primary-blue);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 28px;
+            box-shadow: 0 8px 20px rgba(0, 82, 204, 0.4);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(0, 82, 204, 0.4); }
+            70% { box-shadow: 0 0 0 12px rgba(0, 82, 204, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(0, 82, 204, 0); }
+        }
+
+        .logo-title {
+            font-size: 24px;
+            font-weight: 800;
+            margin: 0;
+            letter-spacing: -0.5px;
+            color: #0b1a30;
+            text-transform: uppercase;
+            text-align: center;
+        }
+
+        .logo-subtitle {
+            font-size: 12px;
+            color: var(--primary-blue);
+            font-weight: 600;
+            margin: 2px 0 0 0;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            text-align: center;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px 16px;
+            margin: 10px 0;
+            box-sizing: border-box;
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 15px;
+            transition: all 0.3s ease;
+            background: #f8fafc;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary-blue);
+            background: #ffffff;
+            box-shadow: 0 0 0 4px rgba(0, 82, 204, 0.1);
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            background: var(--primary-blue);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            font-family: 'Outfit', sans-serif;
+            transition: all 0.3s ease;
+            margin-top: 16px;
+            box-shadow: 0 4px 12px rgba(0, 82, 204, 0.2);
+        }
+
+        button:hover {
+            background: #0043a4;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(0, 82, 204, 0.3);
+        }
+
+        button:active {
+            transform: translateY(1px);
+        }
+
+        .error-container {
+            background: var(--accent-red-light);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            padding: 10px 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .error {
+            color: var(--accent-red);
+            font-size: 14px;
+            font-weight: 500;
+            margin: 0;
+        }
     </style>
 </head>
 <body>
 <div class="box">
-    <div class="logo">🚇 DMRC</div>
-    <h2>Track Layout Generator</h2>
-    {% for message in messages %}
-        <p class="error">{{ message }}</p>
-    {% endfor %}
+    <div class="header-logo-section">
+        <div class="logo-icon-container">🚇</div>
+        <div>
+            <div class="logo-title">DMRC System</div>
+            <div class="logo-subtitle">Control Centre Portal</div>
+        </div>
+    </div>
+    
+    {% if messages %}
+        {% for message in messages %}
+            <div class="error-container">
+                <span style="font-size: 16px;">⚠️</span>
+                <p class="error">{{ message }}</p>
+            </div>
+        {% endfor %}
+    {% endif %}
+
     <form method="POST">
         {% csrf_token %}
-        <input type="text" name="username" placeholder="Username" required>
-        <input type="password" name="password" placeholder="Password" required>
-        <button type="submit">Login</button>
+        <input type="text" name="username" placeholder="Username" required autocomplete="username">
+        <input type="password" name="password" placeholder="Password" required autocomplete="current-password">
+        <button type="submit">Access Control System</button>
     </form>
 </div>
 </body>

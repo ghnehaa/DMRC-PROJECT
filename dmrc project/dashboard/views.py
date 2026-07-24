@@ -423,6 +423,21 @@ def layout_view(request):
     # Pass the full network model details to the template as a JSON string
     context['network_json'] = json.dumps(network_data)
     return render(request, 'dashboard/layout.html', context)
+
+@login_required(login_url='login')
+def select_layout(request, layout_id):
+    try:
+        layout = Layout.objects.get(id=layout_id, user=request.user)
+        request.session['layout_id'] = layout.id
+        if 'sim_state' in request.session:
+            del request.session['sim_state']
+        if 'last_tick_time' in request.session:
+            del request.session['last_tick_time']
+        return redirect('layout')
+    except Layout.DoesNotExist:
+        messages.error(request, 'Layout not found.')
+        return redirect('input')
+
 @login_required(login_url='login')
 def export_csv(request):
     layout_id = request.session.get('layout_id')
