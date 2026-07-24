@@ -203,6 +203,55 @@
             border-radius: 50%;
             box-shadow: 0 0 6px currentColor;
         }
+        /* OCC Live Event Log Console */
+        .console-panel {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-top: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        .console-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+        }
+        .live-dot {
+            color: var(--accent-green);
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 11px;
+        }
+        .console-body {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 12.5px;
+            max-height: 140px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .log-entry {
+            display: flex;
+            gap: 12px;
+            line-height: 1.4;
+        }
+        .log-time {
+            color: var(--text-muted);
+            min-width: 65px;
+        }
+        .log-msg-info { color: #88ccff; }
+        .log-msg-warning { color: var(--accent-yellow); }
+        .log-msg-error { color: var(--accent-red); }
     </style>
 </head>
 <body>
@@ -250,7 +299,7 @@
                 <feComposite in="SourceGraphic" in2="blur" operator="over" />
             </filter>
         </defs>
-        <text x="15" y="{{ up_y|add:-22 }}" fill="#00ff88" font-size="12" font-family="'Share Tech Mono', monospace" font-weight="bold" letter-spacing="1">▲ UP LINE (WEST TO EAST)</text>
+        <text x="15" y="{{ up_y|add:'-22' }}" fill="#00ff88" font-size="12" font-family="'Share Tech Mono', monospace" font-weight="bold" letter-spacing="1">▲ UP LINE (WEST TO EAST)</text>
         <text x="15" y="{{ down_y|add:32 }}" fill="#ffd700" font-size="12" font-family="'Share Tech Mono', monospace" font-weight="bold" letter-spacing="1">▼ DOWN LINE (EAST TO WEST)</text>
         <!-- ── TRACK SEGMENTS (Dynamic blocks) ── -->
         <g id="up-track-segments"></g>
@@ -276,21 +325,17 @@
         <!-- ── CROSSOVERS (Turnouts) ── -->
         {% for co in crossovers %}
             <g id="crossover-{{ co.index }}">
-                <!-- Track overlays: wipes out main lines locally behind turnout switches -->
-                <rect x="{{ co.x_left }}" y="{{ up_y|add:-3 }}" width="{{ co.width }}" height="6" fill="#070714"/>
-                <rect x="{{ co.x_left }}" y="{{ down_y|add:-3 }}" width="{{ co.width }}" height="6" fill="#070714"/>
-                
-                <!-- Crossover Diagonal Line based on Turnout Type (No scissors) -->
+                <!-- Crossover Diagonal Line based on Turnout Type (Main lines remain continuous) -->
                 {% if co.type == 'up_to_down' %}
                     <line x1="{{ co.x_left }}" y1="{{ up_y }}" x2="{{ co.x_right }}" y2="{{ down_y }}" 
-                          stroke="#ff3344" stroke-width="3" stroke-linecap="round"/>
-                    <circle cx="{{ co.x_left }}" cy="{{ up_y }}" r="4.5" fill="#ff3344"/>
-                    <circle cx="{{ co.x_right }}" cy="{{ down_y }}" r="4.5" fill="#ff3344"/>
+                          stroke="#ff3344" stroke-width="3.5" stroke-linecap="round" filter="url(#glow)"/>
+                    <circle cx="{{ co.x_left }}" cy="{{ up_y }}" r="4" fill="#ff3344"/>
+                    <circle cx="{{ co.x_right }}" cy="{{ down_y }}" r="4" fill="#ff3344"/>
                 {% else %}
                     <line x1="{{ co.x_left }}" y1="{{ down_y }}" x2="{{ co.x_right }}" y2="{{ up_y }}" 
-                          stroke="#ff3344" stroke-width="3" stroke-linecap="round"/>
-                    <circle cx="{{ co.x_left }}" cy="{{ down_y }}" r="4.5" fill="#ff3344"/>
-                    <circle cx="{{ co.x_right }}" cy="{{ up_y }}" r="4.5" fill="#ff3344"/>
+                          stroke="#ff3344" stroke-width="3.5" stroke-linecap="round" filter="url(#glow)"/>
+                    <circle cx="{{ co.x_left }}" cy="{{ down_y }}" r="4" fill="#ff3344"/>
+                    <circle cx="{{ co.x_right }}" cy="{{ up_y }}" r="4" fill="#ff3344"/>
                 {% endif %}
                 <!-- Small label box -->
                 <rect x="{{ co.mid_x|add:-22 }}" y="{{ co.mid_y|add:-9 }}" width="44" height="18"
@@ -321,20 +366,20 @@
         {% for s in stations %}
             <g id="station-group-{{ s.number }}">
                 <!-- Station Title Header -->
-                <text x="{{ s.x }}" y="{{ s.box_up_y|add:-10 }}" text-anchor="middle"
+                <text x="{{ s.x }}" y="{{ s.up_y|add:-38 }}" text-anchor="middle"
                       fill="#88ccff" font-size="11" font-family="'Outfit', sans-serif" font-weight="600" letter-spacing="0.5">{{ s.label }}</text>
-                <!-- Platform 01 (UP) -->
-                <rect x="{{ s.box_x }}" y="{{ s.box_up_y }}" width="{{ s.width }}" height="{{ s.height }}"
-                      fill="#00224d" stroke="#00ff88" stroke-width="2.5" rx="4" filter="url(#glow)"/>
-                <text x="{{ s.x }}" y="{{ s.up_y|add:1 }}" text-anchor="middle" dominant-baseline="middle"
+                <!-- Platform 01 (UP) - Positioned cleanly above UP Track -->
+                <rect x="{{ s.box_x }}" y="{{ s.up_y|add:-30 }}" width="{{ s.width }}" height="{{ s.height }}"
+                      fill="#00224d" stroke="#00ff88" stroke-width="2" rx="4" filter="url(#glow)"/>
+                <text x="{{ s.x }}" y="{{ s.up_y|add:-18 }}" text-anchor="middle" dominant-baseline="middle"
                       fill="white" font-size="9.5" font-family="'Outfit', sans-serif" font-weight="bold">PF-01</text>
-                <!-- Platform 02 (DOWN) -->
-                <rect x="{{ s.box_x }}" y="{{ s.box_down_y }}" width="{{ s.width }}" height="{{ s.height }}"
-                      fill="#00224d" stroke="#ffd700" stroke-width="2.5" rx="4" filter="url(#glow)"/>
-                <text x="{{ s.x }}" y="{{ s.down_y|add:1 }}" text-anchor="middle" dominant-baseline="middle"
+                <!-- Platform 02 (DOWN) - Positioned cleanly below DOWN Track -->
+                <rect x="{{ s.box_x }}" y="{{ s.down_y|add:6 }}" width="{{ s.width }}" height="{{ s.height }}"
+                      fill="#00224d" stroke="#ffd700" stroke-width="2" rx="4" filter="url(#glow)"/>
+                <text x="{{ s.x }}" y="{{ s.down_y|add:18 }}" text-anchor="middle" dominant-baseline="middle"
                       fill="white" font-size="9.5" font-family="'Outfit', sans-serif" font-weight="bold">PF-02</text>
                 <!-- Center Dashed Connector -->
-                <line x1="{{ s.x }}" y1="{{ s.box_up_y|add:24 }}" x2="{{ s.x }}" y2="{{ s.box_down_y }}"
+                <line x1="{{ s.x }}" y1="{{ s.up_y|add:-6 }}" x2="{{ s.x }}" y2="{{ s.down_y|add:6 }}"
                       stroke="#4488ff" stroke-width="1.2" stroke-dasharray="3,3" opacity="0.6"/>
                 <!-- 3-Aspect Platform Wayside Signals -->
                 <!-- UP Station Signal (Placed left of platform) -->
@@ -347,11 +392,11 @@
                 </g>
                 <!-- DOWN Station Signal (Placed right of platform) -->
                 <g id="signal-down-group-{{ s.number }}">
-                    <line x1="{{ s.box_x|add:75 }}" y1="{{ s.down_y }}" x2="{{ s.box_x|add:75 }}" y2="{{ s.down_y|add:30 }}" stroke="#555" stroke-width="2"/>
-                    <rect x="{{ s.box_x|add:70 }}" y="{{ s.down_y|add:2 }}" width="10" height="26" fill="#111" stroke="#333" stroke-width="1" rx="2"/>
-                    <circle id="sig-down-{{ s.number }}-green" cx="{{ s.box_x|add:75 }}" cy="{{ s.down_y|add:23 }}" r="2.5" fill="#002208" filter="url(#glow)"/>
-                    <circle id="sig-down-{{ s.number }}-violet" cx="{{ s.box_x|add:75 }}" cy="{{ s.down_y|add:15 }}" r="2.5" fill="#200030"/>
-                    <circle id="sig-down-{{ s.number }}-red" cx="{{ s.box_x|add:75 }}" cy="{{ s.down_y|add:7 }}" r="2.5" fill="#330000"/>
+                    <line x1="{{ s.box_x|add:85 }}" y1="{{ s.down_y }}" x2="{{ s.box_x|add:85 }}" y2="{{ s.down_y|add:30 }}" stroke="#555" stroke-width="2"/>
+                    <rect x="{{ s.box_x|add:80 }}" y="{{ s.down_y|add:2 }}" width="10" height="26" fill="#111" stroke="#333" stroke-width="1" rx="2"/>
+                    <circle id="sig-down-{{ s.number }}-green" cx="{{ s.box_x|add:85 }}" cy="{{ s.down_y|add:23 }}" r="2.5" fill="#002208" filter="url(#glow)"/>
+                    <circle id="sig-down-{{ s.number }}-violet" cx="{{ s.box_x|add:85 }}" cy="{{ s.down_y|add:15 }}" r="2.5" fill="#200030"/>
+                    <circle id="sig-down-{{ s.number }}-red" cx="{{ s.box_x|add:85 }}" cy="{{ s.down_y|add:7 }}" r="2.5" fill="#330000"/>
                 </g>
             </g>
         {% endfor %}
@@ -372,12 +417,22 @@
     <div class="leg-title">Legend</div>
     <div class="leg"><div class="leg-line" style="color:#00ff88; background:#00ff88"></div> UP Track</div>
     <div class="leg"><div class="leg-line" style="color:#ffd700; background:#ffd700"></div> DOWN Track</div>
-    <div class="leg"><div class="leg-box" style="background:#00224d; border:2.5px solid #00ff88"></div> Platform</div>
+    <div class="leg"><div class="leg-box" style="background:#00224d; border:2px solid #00ff88"></div> Platform</div>
     <div class="leg"><div class="leg-line" style="color:#ff3344; background:#ff3344"></div> Crossover Track</div>
     <div class="leg"><div class="leg-line" style="color:#ff8800; background:#ff8800"></div> Depot Siding</div>
     <div class="leg"><div class="leg-dot" style="color:#00ff66; background:#00ff66"></div> Signal Clear (Green)</div>
     <div class="leg"><div class="leg-dot" style="color:#df40ff; background:#df40ff"></div> Crossover Caution (Violet)</div>
     <div class="leg"><div class="leg-dot" style="color:#ff3344; background:#ff3344"></div> Block Occupied (Red)</div>
+</div>
+<!-- Live Event Console Feed -->
+<div class="console-panel">
+    <div class="console-header">
+        <span>OCC SYSTEM EVENT CONSOLE / INTERLOCKING TELEMETRY FEED</span>
+        <span class="live-dot">● LIVE SYNC</span>
+    </div>
+    <div class="console-body" id="event-log-container">
+        <div class="log-entry"><span class="log-time">[00:00:00]</span><span class="log-msg-info">OCC Control System initialized. LIVE monitoring mode enabled.</span></div>
+    </div>
 </div>
 <script>
 // ── Core data passed from Django ────────────────────────────────────
@@ -523,24 +578,24 @@ function updateOCCDashboard(data) {
     }
     prevX = t.x;
     // 3. Update active block telemetry UI
-    const activeSeg = t.journey ? t.journey[t.seg_index] : null;
     const opStatusText = document.getElementById('op-status');
     const blockHud = document.getElementById('hud-block');
     const trainRect = document.getElementById('train');
+    const activeBlockName = t.current_tc || (t.y === upY ? 'TC-UP-LINE' : t.y === downY ? 'TC-DN-LINE' : 'TC-XOV');
     if (t.y === upY) {
         trainRect.setAttribute('fill', '#00ff88');
         opStatusText.innerText = 'OPERATIONS ACTIVE / UP LINE';
-        blockHud.innerText = 'UP LINE';
+        blockHud.innerText = activeBlockName;
         blockHud.className = 'hud-value text-green';
     } else if (t.y === downY) {
         trainRect.setAttribute('fill', '#ffd700');
         opStatusText.innerText = 'OPERATIONS ACTIVE / DOWN LINE';
-        blockHud.innerText = 'DOWN LINE';
+        blockHud.innerText = activeBlockName;
         blockHud.className = 'hud-value text-yellow';
     } else {
         trainRect.setAttribute('fill', '#df40ff');
         opStatusText.innerText = 'OPERATIONS ACTIVE / CROSSING OVER';
-        blockHud.innerText = 'CROSSOVER';
+        blockHud.innerText = activeBlockName;
         blockHud.className = 'hud-value text-violet';
     }
     // 4. Update HUD widgets
@@ -554,7 +609,6 @@ function updateOCCDashboard(data) {
     renderTrackOccupancies(data.track_circuits);
     data.signals.forEach(sig => renderSignalAspect(sig));
     // 6. Update HUD Signal display aspect
-    // Find the next signal ahead of the train
     let signalAhead = null;
     if (t.y === upY) {
         signalAhead = data.signals.filter(s => s.line === 'up' && s.x > t.x).sort((a,b) => a.x - b.x)[0];
@@ -569,6 +623,18 @@ function updateOCCDashboard(data) {
     } else {
         document.getElementById('hud-signal').innerText = 'GREEN';
         document.getElementById('hud-signal').className = 'hud-value text-green';
+    }
+    // 7. Update Live OCC Console Event Log Feed
+    if (data.event_logs && data.event_logs.length > 0) {
+        const consoleContainer = document.getElementById('event-log-container');
+        if (consoleContainer) {
+            consoleContainer.innerHTML = data.event_logs.map(log => {
+                const msgClass = log.type === 'WARNING' ? 'log-msg-warning' :
+                                 log.type === 'ERROR' ? 'log-msg-error' : 'log-msg-info';
+                return `<div class="log-entry"><span class="log-time">[${log.timestamp}]</span><span class="${msgClass}">${log.message}</span></div>`;
+            }).join('');
+            consoleContainer.scrollTop = consoleContainer.scrollHeight;
+        }
     }
 }
 function toggleSim() {

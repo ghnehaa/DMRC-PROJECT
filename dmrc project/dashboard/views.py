@@ -137,7 +137,7 @@ class MetroNetwork:
         self.track_circuits.append(TrackCircuit('TC-DN-TRAIL', 'down', last_s['x'], self.svg_width - self.margin_right))
         # 3. Instantiate Crossover Points
         XOV_WIDTH = 50
-        XOV_DISTANCE = 60
+        XOV_DISTANCE = 35
         for idx, co in enumerate(Crossover.objects.filter(layout=self.layout), 1):
             from_x = self.margin_left + (co.from_station - 1) * self.spacing
             if co.position == 'after':
@@ -291,16 +291,16 @@ def input_view(request):
                 for e in errors:
                     messages.error(request, e)
                 return redirect('input')
-            # Always force a crossover at the last station so the
-            # train can reverse direction automatically, even if
-            # the user didn't add one near the terminal station.
+            # Ensure turnback crossovers exist at both terminals
             last_station = num_stations
             second_last  = num_stations - 1 if num_stations > 1 else num_stations
-            already_has_last = any(
-                c[0] == last_station or c[1] == last_station for c in crossover_data
-            )
+            already_has_first = any(c[0] == 1 or c[1] == 1 for c in crossover_data)
+            if not already_has_first:
+                crossover_data.insert(0, (1, 2, 'before'))
+                num_crossovers += 1
+            already_has_last = any(c[0] == last_station or c[1] == last_station for c in crossover_data)
             if not already_has_last:
-                crossover_data.append((second_last, last_station, 'before'))
+                crossover_data.append((second_last, last_station, 'after'))
                 num_crossovers += 1
             layout = Layout.objects.create(
                 user=request.user,
@@ -343,12 +343,12 @@ def layout_view(request):
     num_stations = layout.num_stations
     SVG_WIDTH    = 1200
     SVG_HEIGHT   = 400
-    MARGIN_LEFT  = 100
-    MARGIN_RIGHT = 100
+    MARGIN_LEFT  = 150
+    MARGIN_RIGHT = 150
     SPACING      = (SVG_WIDTH - MARGIN_LEFT - MARGIN_RIGHT) // max(num_stations - 1, 1)
     UP_Y         = 120
     DOWN_Y       = 260
-    ST_W         = 60
+    ST_W         = 70
     ST_H         = 24
     # Instantiate the OOP MetroNetwork class to build the layout components
     network = MetroNetwork(
@@ -466,28 +466,61 @@ import time
 def build_journey_path(margin_left, margin_right, spacing, num_stations, up_y, down_y, crossovers, svg_width):
     """
     Builds the closed-loop path segments that the train follows.
+    Ensures complete service coverage across all stations from ST-01 to ST-N
+    on both UP and DOWN main lines.
     """
     path = []
-    sorted_co = sorted(crossovers, key=lambda c: c['x_left'])
-    first_co = sorted_co[0] if sorted_co else None
-    last_co = sorted_co[-1] if sorted_co else None
-    track_x1 = margin_left
-    track_x2 = svg_width - margin_right
-    if first_co and last_co and first_co['x_left'] != last_co['x_left']:
-        path.append({'x1': first_co['x_right'], 'y1': up_y, 'x2': last_co['x_left'], 'y2': up_y, 'track': 'up'})
-        path.append({'x1': last_co['x_left'], 'y1': up_y, 'x2': last_co['x_right'], 'y2': down_y, 'track': 'crossover', 'index': last_co['index']})
-        path.append({'x1': last_co['x_right'], 'y1': down_y, 'x2': first_co['x_left'], 'y2': down_y, 'track': 'down'})
-        path.append({'x1': first_co['x_left'], 'y1': down_y, 'x2': first_co['x_right'], 'y2': up_y, 'track': 'crossover', 'index': first_co['index']})
-    elif last_co:
-        path.append({'x1': track_x1, 'y1': up_y, 'x2': last_co['x_left'], 'y2': up_y, 'track': 'up'})
-        path.append({'x1': last_co['x_left'], 'y1': up_y, 'x2': last_co['x_right'], 'y2': down_y, 'track': 'crossover', 'index': last_co['index']})
-        path.append({'x1': last_co['x_right'], 'y1': down_y, 'x2': track_x1, 'y2': down_y, 'track': 'down'})
-        path.append({'x1': track_x1, 'y1': down_y, 'x2': track_x1, 'y2': up_y, 'track': 'crossover', 'index': None})
-    else:
-        path.append({'x1': track_x1, 'y1': up_y, 'x2': track_x2, 'y2': up_y, 'track': 'up'})
-        path.append({'x1': track_x2, 'y1': up_y, 'x2': track_x2, 'y2': down_y, 'track': 'crossover', 'index': None})
-        path.append({'x1': track_x2, 'y1': down_y, 'x2': track_x1, 'y2': down_y, 'track': 'down'})
-        path.append({'x1': track_x1, 'y1': down_y, 'x2': track_x1, 'y2': up_y, 'track': 'crossover', 'index': None})
+    sorted_co = sorted(crossovers, key=lambda c: c['x_left']) if crossovers else []
+    
+    # Identify West turnback crossover (positioned near or left of ST-01)
+    west_co = next((c for c in sorted_co if c['x_left'] < margin_left), None)
+    if not west_co and sorted_co:
+        west_co = sorted_co[0]
+        
+    # Identify East turnback crossover (positioned near or right of ST-N)
+    east_co = next((c for c in reversed(sorted_co) if c['x_right'] > (svg_width - margin_right)), None)
+    if not east_co and sorted_co:
+        east_co = sorted_co[-1]
+        
+    # Calculate turnback boundary coordinates
+    left_x_turn_end   = west_co['x_left'] if west_co else (margin_left - 100)
+    left_x_turn_start = west_co['x_right'] if west_co else (margin_left - 50)
+    
+    right_x_turn_start = east_co['x_left'] if east_co else (svg_width - margin_right + 50)
+    right_x_turn_end   = east_co['x_right'] if east_co else (svg_width - margin_right + 100)
+    
+    # Seg 0: UP Line (Eastbound straight track across ALL stations ST-01 to ST-N)
+    path.append({
+        'x1': left_x_turn_end, 'y1': up_y,
+        'x2': right_x_turn_start, 'y2': up_y,
+        'track': 'up',
+        'index': None
+    })
+    
+    # Seg 1: East Turnback Crossover (UP line to DOWN line)
+    path.append({
+        'x1': right_x_turn_start, 'y1': up_y,
+        'x2': right_x_turn_end, 'y2': down_y,
+        'track': 'crossover',
+        'index': east_co['index'] if east_co else None
+    })
+    
+    # Seg 2: DOWN Line (Westbound straight track across ALL stations ST-N down to ST-01)
+    path.append({
+        'x1': right_x_turn_end, 'y1': down_y,
+        'x2': left_x_turn_start, 'y2': down_y,
+        'track': 'down',
+        'index': None
+    })
+    
+    # Seg 3: West Turnback Crossover (DOWN line to UP line)
+    path.append({
+        'x1': left_x_turn_start, 'y1': down_y,
+        'x2': left_x_turn_end, 'y2': up_y,
+        'track': 'crossover',
+        'index': west_co['index'] if west_co else None
+    })
+    
     for seg in path:
         seg['length'] = math.hypot(seg['x2'] - seg['x1'], seg['y2'] - seg['y1'])
     return path
@@ -817,12 +850,12 @@ def simulation_tick(request):
     num_stations = layout.num_stations
     SVG_WIDTH    = 1200
     SVG_HEIGHT   = 400
-    MARGIN_LEFT  = 100
-    MARGIN_RIGHT = 100
+    MARGIN_LEFT  = 150
+    MARGIN_RIGHT = 150
     SPACING      = (SVG_WIDTH - MARGIN_LEFT - MARGIN_RIGHT) // max(num_stations - 1, 1)
     UP_Y         = 120
     DOWN_Y       = 260
-    ST_W         = 60
+    ST_W         = 70
     ST_H         = 24
     network = MetroNetwork(layout, SPACING, UP_Y, DOWN_Y, MARGIN_LEFT, MARGIN_RIGHT, SVG_WIDTH, ST_W, ST_H)
     network_data = network.get_serialized_data()
