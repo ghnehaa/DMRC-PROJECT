@@ -945,6 +945,7 @@ def simulation_tick(request):
             engine = TrainSimEngine.from_dict(sim_data, network_data, journey)
         except Exception:
             engine = TrainSimEngine(network_data, journey)
+
     # Compute actual delta-time
     last_tick_time = request.session.get('last_tick_time')
     now = time.time()
@@ -956,8 +957,10 @@ def simulation_tick(request):
     else:
         dt = 0.033
     request.session['last_tick_time'] = now
+
     # Execute simulation tick
     engine.tick(dt)
+
     # Save state back to session
     engine_dict = engine.to_dict()
     request.session['sim_state'] = engine_dict
@@ -990,3 +993,35 @@ def simulation_tick(request):
     
     from django.http import JsonResponse
     return JsonResponse(response_data)
+
+
+@login_required(login_url='login')
+def update_point(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+        except Exception:
+            return JsonResponse({'status': 'error', 'message': 'Invalid JSON'}, status=400)
+            
+        point_id = data.get('point_id')
+        position = data.get('position')
+        
+        sim_state = request.session.get('sim_state')
+        if sim_state:
+            for p in sim_state.get('points', []):
+                if p['point_id'] == point_id:
+                    if not p.get('is_locked', False):
+                        p['current_state'] = position
+                        
+                        import datetime
+                        timestamp = datetime.datetime.now().strftime('%H:%M:%S')
+                        sim_state.setdefault('event_logs', []).append({
+                            'timestamp': timestamp,
+                            'message': f"Point Switch {point_id} set to {position}",
+                            'type': 'INFO'
+                        })
+                    break
+            request.session['sim_state'] = sim_state
+            return JsonResponse({'status': 'ok'})
+    return JsonResponse({'status': 'error'}, status=400)
+
