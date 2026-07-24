@@ -558,24 +558,10 @@ function fetchSimulationTick() {
 // Renders train coordinate, telemetry values, and wayside elements
 function updateOCCDashboard(data) {
     const t = data.train;
-    // 1. Move train box on the track
+    // 1. Move and rotate train box on the track dynamically along segment heading
     const trainCont = document.getElementById('train-container');
-    trainCont.setAttribute('transform', `translate(${t.x - 19}, ${t.y - 7.5})`);
-    // 2. Adjust headlights depending on travel heading
-    const trainGlassEl = document.getElementById('train-glass');
-    const trainLabelEl = document.getElementById('train-label');
-    if (prevX !== null) {
-        const movingLeft = (t.x < prevX);
-        if (movingLeft) {
-            trainGlassEl.setAttribute('x', '2');
-            trainLabelEl.setAttribute('x', '22');
-            trainLabelEl.setAttribute('y', '8');
-        } else {
-            trainGlassEl.setAttribute('x', '30');
-            trainLabelEl.setAttribute('x', '16');
-            trainLabelEl.setAttribute('y', '8');
-        }
-    }
+    const headingAngle = t.heading || 0;
+    trainCont.setAttribute('transform', `translate(${t.x}, ${t.y}) rotate(${headingAngle}) translate(-19, -7.5)`);
     prevX = t.x;
     // 3. Update active block telemetry UI
     const opStatusText = document.getElementById('op-status');
