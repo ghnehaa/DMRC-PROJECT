@@ -300,7 +300,7 @@ def input_view(request):
                 num_crossovers += 1
             already_has_last = any(c[0] == last_station or c[1] == last_station for c in crossover_data)
             if not already_has_last:
-                crossover_data.append((second_last, last_station, 'after'))
+                crossover_data.append((last_station, second_last, 'after'))
                 num_crossovers += 1
             layout = Layout.objects.create(
                 user=request.user,
@@ -472,23 +472,34 @@ def build_journey_path(margin_left, margin_right, spacing, num_stations, up_y, d
     path = []
     sorted_co = sorted(crossovers, key=lambda c: c['x_left']) if crossovers else []
     
-    # Identify West turnback crossover (positioned near or left of ST-01)
-    west_co = next((c for c in sorted_co if c['x_left'] < margin_left), None)
+    first_st_x = margin_left
+    last_st_x  = margin_left + max(0, num_stations - 1) * spacing
+    
+    # Identify West turnback crossover (positioned before or near ST-01)
+    west_co = next((c for c in sorted_co if c['x_right'] <= first_st_x + 20), None)
     if not west_co and sorted_co:
         west_co = sorted_co[0]
         
-    # Identify East turnback crossover (positioned near or right of ST-N)
-    east_co = next((c for c in reversed(sorted_co) if c['x_right'] > (svg_width - margin_right)), None)
+    # Identify East turnback crossover (positioned after or near ST-N)
+    east_co = next((c for c in reversed(sorted_co) if c['x_left'] >= last_st_x - 20), None)
     if not east_co and sorted_co:
         east_co = sorted_co[-1]
         
-    # Calculate turnback boundary coordinates
-    left_x_turn_end   = west_co['x_left'] if west_co else (margin_left - 100)
-    left_x_turn_start = west_co['x_right'] if west_co else (margin_left - 50)
-    
-    right_x_turn_start = east_co['x_left'] if east_co else (svg_width - margin_right + 50)
-    right_x_turn_end   = east_co['x_right'] if east_co else (svg_width - margin_right + 100)
-    
+    # Calculate turnback boundary coordinates ensuring all stations 1..N are covered
+    if west_co and west_co['x_right'] <= first_st_x:
+        left_x_turn_end   = west_co['x_left']
+        left_x_turn_start = west_co['x_right']
+    else:
+        left_x_turn_end   = first_st_x - 100
+        left_x_turn_start = first_st_x - 40
+        
+    if east_co and east_co['x_left'] >= last_st_x:
+        right_x_turn_start = east_co['x_left']
+        right_x_turn_end   = east_co['x_right']
+    else:
+        right_x_turn_start = last_st_x + 40
+        right_x_turn_end   = last_st_x + 100
+        
     # Seg 0: UP Line (Eastbound straight track across ALL stations ST-01 to ST-N)
     path.append({
         'x1': left_x_turn_end, 'y1': up_y,
@@ -502,7 +513,7 @@ def build_journey_path(margin_left, margin_right, spacing, num_stations, up_y, d
         'x1': right_x_turn_start, 'y1': up_y,
         'x2': right_x_turn_end, 'y2': down_y,
         'track': 'crossover',
-        'index': east_co['index'] if east_co else None
+        'index': east_co['index'] if (east_co and east_co['x_left'] >= last_st_x) else None
     })
     
     # Seg 2: DOWN Line (Westbound straight track across ALL stations ST-N down to ST-01)
@@ -518,7 +529,7 @@ def build_journey_path(margin_left, margin_right, spacing, num_stations, up_y, d
         'x1': left_x_turn_start, 'y1': down_y,
         'x2': left_x_turn_end, 'y2': up_y,
         'track': 'crossover',
-        'index': west_co['index'] if west_co else None
+        'index': west_co['index'] if (west_co and west_co['x_right'] <= first_st_x) else None
     })
     
     for seg in path:
@@ -535,6 +546,7 @@ class Train:
         self.seg_progress = 0.0
         self.speed = 0.0
         self.acc = 0.0
+        self.heading = 0.0
         self.state = 'ACCELERATING'
         self.dwell_timer = 0.0
         self.x = journey[0]['x1']
@@ -542,7 +554,7 @@ class Train:
         self.last_stopped_station = None
         self.last_stopped_line = None
         
-        # New telemetry parameters (m, d, s, t mappings)
+        # Telemetry parameters
         self.current_tc = 'TC-UNKNOWN'
         self.chainage = 0.0
         self.direction = 'UP'
@@ -564,6 +576,7 @@ class Train:
             'seg_progress': self.seg_progress,
             'speed': self.speed,
             'acc': self.acc,
+            'heading': getattr(self, 'heading', 0.0),
             'state': self.state,
             'dwell_timer': self.dwell_timer,
             'x': self.x,
@@ -571,7 +584,6 @@ class Train:
             'last_stopped_station': self.last_stopped_station,
             'last_stopped_line': self.last_stopped_line,
             
-            # Signaling parameters (m, d, s, t)
             'current_tc': self.current_tc,
             'current_track_circuit': self.current_tc,
             'chainage': self.chainage,
@@ -589,6 +601,7 @@ class Train:
         t.seg_progress = data['seg_progress']
         t.speed = data['speed']
         t.acc = data['acc']
+        t.heading = data.get('heading', 0.0)
         t.state = data['state']
         t.dwell_timer = data['dwell_timer']
         t.x = data['x']
@@ -596,7 +609,6 @@ class Train:
         t.last_stopped_station = data['last_stopped_station']
         t.last_stopped_line = data['last_stopped_line']
         
-        # Load new fields with fallback
         t.current_tc = data.get('current_tc', 'TC-UNKNOWN')
         t.chainage = data.get('chainage', 0.0)
         t.direction = data.get('direction', 'UP')
@@ -647,109 +659,161 @@ class TrainSimEngine:
     def tick(self, dt):
         t = self.train
         prev_state = t.state
-        prev_seg_index = t.seg_index
         prev_tc = t.current_tc
         current_seg = self.journey[t.seg_index]
-        speed_limit = (25.0 / 3.6) if current_seg['track'] == 'crossover' else (60.0 / 3.6)
+        
+        LINE_SPEED_LIMIT = 60.0 / 3.6      # 16.67 m/s (60 km/h)
+        CROSSOVER_SPEED_LIMIT = 25.0 / 3.6 # 6.94 m/s (25 km/h)
+        
+        max_speed = CROSSOVER_SPEED_LIMIT if current_seg['track'] == 'crossover' else LINE_SPEED_LIMIT
+        max_acc = 1.3  # m/s^2
+        max_dec = 1.2  # m/s^2
+        
+        # 1. Handle DWELLING State
         if t.state == 'DWELLING':
             t.speed = 0.0
             t.acc = 0.0
             t.dwell_timer -= dt
             if t.dwell_timer <= 0.0:
+                t.dwell_timer = 0.0
                 t.state = 'ACCELERATING'
                 self.log_event(f"Train {t.train_id} completed dwelling and is departing")
             return
-        # 1. Locate next station target stop on the current segment
-        stop_target_dist = None
+
+        # 2. Find Target Stopping Point (Station platform)
+        target_dist = None
         target_station_obj = None
+        
         if current_seg['track'] == 'up':
-            valid_stations = [s for s in self.stations if current_seg['x1'] < s['x'] <= current_seg['x2']]
+            valid_stations = [s for s in self.stations if current_seg['x1'] <= s['x'] <= current_seg['x2']]
             valid_stations.sort(key=lambda s: s['x'])
             for s in valid_stations:
                 d_station = s['x'] - current_seg['x1']
-                if d_station > t.seg_progress + 1.0 and (t.last_stopped_station != s['number'] or t.last_stopped_line != 'up'):
-                    stop_target_dist = d_station
+                if d_station > t.seg_progress - 1.0 and (t.last_stopped_station != s['number'] or t.last_stopped_line != 'up'):
+                    target_dist = d_station
                     target_station_obj = s
                     break
         elif current_seg['track'] == 'down':
-            valid_stations = [s for s in self.stations if current_seg['x2'] <= s['x'] < current_seg['x1']]
+            valid_stations = [s for s in self.stations if current_seg['x2'] <= s['x'] <= current_seg['x1']]
             valid_stations.sort(key=lambda s: s['x'], reverse=True)
             for s in valid_stations:
                 d_station = current_seg['x1'] - s['x']
-                if d_station > t.seg_progress + 1.0 and (t.last_stopped_station != s['number'] or t.last_stopped_line != 'down'):
-                    stop_target_dist = d_station
+                if d_station > t.seg_progress - 1.0 and (t.last_stopped_station != s['number'] or t.last_stopped_line != 'down'):
+                    target_dist = d_station
                     target_station_obj = s
                     break
-        # 2. Deceleration zones
-        if stop_target_dist is not None:
-            dist_to_station = stop_target_dist - t.seg_progress
-            brake_dist = (t.speed * t.speed) / (2.0 * 1.2)
-            if dist_to_station <= brake_dist + 2.0:
-                t.state = 'BRAKING'
-                t.acc = - (t.speed * t.speed) / (2.0 * max(1.0, dist_to_station))
-                if t.acc > -0.2:
-                    t.acc = -1.2
+
+        # Check Signal Ahead aspect (ATP enforcement)
+        signal_speed_cap = max_speed
+        if current_seg['track'] in ('up', 'down'):
+            if current_seg['track'] == 'up':
+                sigs_ahead = [s for s in self.signals if s.line == 'up' and s.x > t.x]
+                sigs_ahead.sort(key=lambda s: s.x)
+            else:
+                sigs_ahead = [s for s in self.signals if s.line == 'down' and s.x < t.x]
+                sigs_ahead.sort(key=lambda s: s.x, reverse=True)
+                
+            if sigs_ahead:
+                sig = sigs_ahead[0]
+                if sig.aspect == 'RED':
+                    d_sig = (sig.x - current_seg['x1']) if current_seg['track'] == 'up' else (current_seg['x1'] - sig.x)
+                    if target_dist is None or d_sig < target_dist:
+                        target_dist = d_sig
+                        target_station_obj = None
+                elif sig.aspect == 'VIOLET':
+                    signal_speed_cap = min(signal_speed_cap, CROSSOVER_SPEED_LIMIT)
+
+        # 3. Kinematic Speed & Target Calculation
+        if target_dist is not None:
+            dist_remaining = max(0.0, target_dist - t.seg_progress)
             
-            if dist_to_station < 1.5 and t.speed < 1.2:
+            # Analytical velocity profile for constant deceleration: v = sqrt(2 * a * d)
+            v_target = math.sqrt(2.0 * max_dec * dist_remaining)
+            v_target = min(v_target, signal_speed_cap)
+            
+            # Station arrival / stop condition check
+            if target_station_obj and (dist_remaining <= 2.0 or (dist_remaining <= 4.0 and t.speed <= 3.0)):
                 t.speed = 0.0
-                t.seg_progress = stop_target_dist
+                t.acc = 0.0
+                t.seg_progress = target_dist
                 t.state = 'DWELLING'
                 t.dwell_timer = 3.0
                 t.last_stopped_station = target_station_obj['number']
                 t.last_stopped_line = current_seg['track']
                 
-                self.log_event(f"Train {t.train_id} arrived at {target_station_obj['label']} (" + ("PF-01" if current_seg['track'] == 'up' else "PF-02") + ") and is dwelling")
-                self.evaluate_interlocking(target_station_obj['x'], current_seg['track'])
+                # Position train precisely at platform center
+                progress_ratio = target_dist / current_seg['length'] if current_seg['length'] > 0 else 1.0
+                t.x = current_seg['x1'] + (current_seg['x2'] - current_seg['x1']) * progress_ratio
+                t.y = current_seg['y1'] + (current_seg['y2'] - current_seg['y1']) * progress_ratio
+                
+                pf_name = "PF-01" if current_seg['track'] == 'up' else "PF-02"
+                self.log_event(f"Train {t.train_id} arrived at {target_station_obj['label']} ({pf_name}) and is dwelling")
+                self.evaluate_interlocking(t.x, current_seg['track'])
                 return
-        else:
-            # Slow down for crossover speed caution
-            next_seg = self.journey[(t.seg_index + 1) % len(self.journey)]
-            if next_seg and next_seg['track'] == 'crossover' and t.speed > (25.0 / 3.6):
-                dist_to_crossover = current_seg['length'] - t.seg_progress
-                slow_dist = (t.speed * t.speed - (25.0/3.6)**2) / (2.0 * 1.2)
-                if dist_to_crossover <= slow_dist + 2.0:
-                    t.state = 'BRAKING'
-                    t.acc = - (t.speed * t.speed - (25.0/3.6)**2) / (2.0 * max(1.0, dist_to_crossover))
-                    if t.acc > -0.2:
-                        t.acc = -1.2
-        # 3. Kinematics updates
-        if t.state == 'ACCELERATING':
-            t.acc = t.calculate_acceleration()
-            t.speed += t.acc * dt
-            if t.speed >= speed_limit:
-                t.speed = speed_limit
-                t.state = 'CRUISING'
-                t.acc = 0.0
-        elif t.state == 'CRUISING':
-            t.acc = 0.0
-            if t.speed < speed_limit:
+
+            if t.speed < v_target:
                 t.state = 'ACCELERATING'
+                t.acc = t.calculate_acceleration()
+                t.speed = min(v_target, t.speed + t.acc * dt)
             else:
-                t.speed = speed_limit
-        elif t.state == 'BRAKING':
-            t.speed += t.acc * dt
-            if t.speed < 0.0:
-                t.speed = 0.0
+                t.state = 'BRAKING'
+                t.acc = - max_dec
+                t.speed = max(v_target, t.speed - max_dec * dt)
+        else:
+            # Check upcoming crossover speed reduction
+            next_seg = self.journey[(t.seg_index + 1) % len(self.journey)]
+            if next_seg and next_seg['track'] == 'crossover':
+                dist_to_crossover = max(0.0, current_seg['length'] - t.seg_progress)
+                v_target = math.sqrt(CROSSOVER_SPEED_LIMIT**2 + 2.0 * max_dec * dist_to_crossover)
+                v_target = min(v_target, signal_speed_cap)
+                
+                if t.speed > v_target:
+                    t.state = 'BRAKING'
+                    t.acc = - max_dec
+                    t.speed = max(CROSSOVER_SPEED_LIMIT, t.speed + t.acc * dt)
+                elif t.speed < signal_speed_cap:
+                    t.state = 'ACCELERATING'
+                    t.acc = t.calculate_acceleration()
+                    t.speed = min(signal_speed_cap, t.speed + t.acc * dt)
+                else:
+                    t.state = 'CRUISING'
+                    t.acc = 0.0
+                    t.speed = signal_speed_cap
+            else:
+                if t.speed < signal_speed_cap:
+                    t.state = 'ACCELERATING'
+                    t.acc = t.calculate_acceleration()
+                    t.speed = min(signal_speed_cap, t.speed + t.acc * dt)
+                else:
+                    t.state = 'CRUISING'
+                    t.acc = 0.0
+                    t.speed = signal_speed_cap
+
         # 4. Progress coordinate update
         t.seg_progress += t.speed * dt
         if t.seg_progress >= current_seg['length']:
             t.seg_progress = t.seg_progress - current_seg['length']
             t.seg_index = (t.seg_index + 1) % len(self.journey)
             t.state = 'ACCELERATING'
+            
         next_seg_active = self.journey[t.seg_index]
         progress_ratio = (t.seg_progress / next_seg_active['length']) if next_seg_active['length'] > 0 else 1.0
         t.x = next_seg_active['x1'] + (next_seg_active['x2'] - next_seg_active['x1']) * progress_ratio
         t.y = next_seg_active['y1'] + (next_seg_active['y2'] - next_seg_active['y1']) * progress_ratio
         
-        # Update train telemetry parameters (m, d, s, t mappings)
+        # Calculate heading angle in degrees along track segment
+        dx = next_seg_active['x2'] - next_seg_active['x1']
+        dy = next_seg_active['y2'] - next_seg_active['y1']
+        t.heading = round(math.degrees(math.atan2(dy, dx)), 1)
+
+        # Update train telemetry parameters
         t.mode = 'ATO'
         t.direction = next_seg_active['track'].upper()
-        t.chainage = round(t.x - 100.0, 1)  # 1 pixel = 1 meter, starting at X=100 (Station 1)
-        
+        t.chainage = round(t.x - 100.0, 1)
+
         # 5. Run interlocking
         self.evaluate_interlocking(t.x, next_seg_active['track'])
-        
-        # Log key state transitions and block entries
+
         if t.state != prev_state:
             self.log_event(f"Train {t.train_id} state changed to {t.state}")
         if t.current_tc != prev_tc and t.current_tc != 'TC-UNKNOWN':
