@@ -165,18 +165,27 @@ Browser JavaScript AJAX fetch (every ~33 ms)
 ```
 DMRC-PROJECT/
 |
-+-- README.md                         <- This documentation file
++-- README.md                         <- Comprehensive project documentation & architecture guide
++-- INSTALLATION.md                   <- System installation & multi-platform deployment guide
++-- requirements.txt                  <- Python package dependencies (Django 4.2+)
++-- setup.bat                         <- Windows 1-click automated setup & launcher script
++-- setup.sh                          <- Linux/macOS 1-click automated setup & launcher script
 |
-+-- dmrc project/                     <- Django Project Root
++-- dmrc project/                     <- Django Project Root Directory
     |
     +-- manage.py                     <- Django management CLI entry point
     +-- db.sqlite3                    <- SQLite3 database (auto-generated after migrate)
+    +-- requirements.txt              <- Portable python package requirement file
+    +-- INSTALLATION.md               <- Local installation manual
+    +-- setup.bat                     <- Windows setup script
+    +-- setup.sh                      <- Linux/macOS setup script
     |
     +-- dmrcproject/                  <- Django Project Configuration Package
     |   +-- __init__.py
     |   +-- settings.py               <- Django settings: DB config, installed apps, sessions
     |   +-- urls.py                   <- Root URL dispatcher (includes dashboard.urls)
     |   +-- wsgi.py                   <- WSGI entry point for production deployment
+    |   +-- asgi.py                   <- ASGI entry point for asynchronous features
     |
     +-- dashboard/                    <- Main Django Application Package
         |
@@ -187,7 +196,7 @@ DMRC-PROJECT/
         |
         +-- models.py                 <- Database models: Layout, Station, Crossover, Depot
         +-- urls.py                   <- App-level URL patterns and AJAX API endpoints
-        +-- views.py                  <- ALL backend logic in one file:
+        +-- views.py                  <- Core backend logic & simulation engine:
         |                                  OOP Classes: TrackCircuit, PointSwitch,
         |                                    SignalPost, MetroNetwork
         |                                  Django Views: login_view, logout_view,
@@ -563,56 +572,82 @@ All signals are initialized to GREEN at the beginning of each tick. The cascade 
 
 ## **13. Setup & Execution Guide**
 
-### **Prerequisites**
-- Python 3.x installed on your system.
-- pip Python package manager available.
+> For complete operating-system-specific installation procedures, network deployment steps, and troubleshooting, refer to [INSTALLATION.md](file:///c:/Users/SMB/Desktop/dmrc%20project/DMRC-PROJECT/INSTALLATION.md).
 
-### **Step 1 — Install Django**
+---
 
-Open a terminal or PowerShell window and run:
+### **System Requirements**
+- **Python 3.8, 3.9, 3.10, 3.11, or 3.12+**
+- **pip** package installer
+- **SQLite3** (standard Python library)
+- **Web Browser**: Chrome, Edge, Firefox, or Safari (HTML5 SVG & ES6 JS enabled)
 
+---
+
+### **Option A — Automated One-Click Quick Start (Recommended)**
+
+#### **On Windows (Command Prompt / PowerShell)**
+Run the automated launcher script from the root directory:
+```cmd
+setup.bat
 ```
-pip install django
+*This script automatically creates a `.venv` virtual environment, installs `requirements.txt`, applies database migrations, opens your browser, and starts the Django dev server.*
+
+#### **On Linux / macOS / WSL**
+Make the shell script executable and run:
+```bash
+chmod +x setup.sh
+./setup.sh
 ```
 
-### **Step 2 — Navigate to the Project Directory**
+---
 
+### **Option B — Manual Installation Walkthrough**
+
+#### **Step 1: Clone / Navigate to Project Directory**
+```bash
+cd "DMRC-PROJECT/dmrc project"
 ```
-cd "c:\Users\SMB\Desktop\dmrc project\DMRC-PROJECT\dmrc project"
+
+#### **Step 2: Create & Activate Virtual Environment**
+```bash
+# Windows (cmd.exe)
+python -m venv .venv
+.venv\Scripts\activate
+
+# Linux / macOS
+python3 -m venv .venv
+source .venv/bin/activate
 ```
 
-### **Step 3 — Apply Database Migrations**
-
-This creates all required SQLite3 tables from the Django models:
-
+#### **Step 3: Install Dependencies from `requirements.txt`**
+```bash
+pip install --upgrade pip
+pip install -r requirements.txt
 ```
+
+#### **Step 4: Apply Database Migrations**
+Creates required database schema in `db.sqlite3`:
+```bash
 python manage.py makemigrations
 python manage.py migrate
 ```
 
-### **Step 4 — Create a Superuser Account**
-
-```
+#### **Step 5: Create Superuser Account (Optional)**
+```bash
 python manage.py createsuperuser
 ```
+Follow prompts to set up administrative credentials for Django admin (`/admin/`).
 
-Follow the interactive prompts to enter a username, email address, and password. These credentials are used to log in to the simulator dashboard.
-
-### **Step 5 — Start the Development Server**
-
-```
+#### **Step 6: Start the Development Server**
+```bash
 python manage.py runserver
 ```
 
-You will see output confirming the server is running on port 8000.
-
-### **Step 6 — Open the Simulator in Your Browser**
-
-Navigate to:
-
-```
-http://127.0.0.1:8000/login/
-```
+#### **Step 7: Launch in Web Browser**
+Access the DMRC OCC Simulator:
+- **Login Screen**: [http://127.0.0.1:8000/login/](http://127.0.0.1:8000/login/)
+- **Layout Configurator**: [http://127.0.0.1:8000/input/](http://127.0.0.1:8000/input/)
 
 ---
 
